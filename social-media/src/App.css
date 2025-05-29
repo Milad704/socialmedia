@@ -1,27 +1,56 @@
 .login-screen {
-  height: 100vh;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
-  background: #fffc00;
+  padding-top: 50px;
+  height: 100vh;
+  background-color: #f3f716;
   text-align: center;
 }
 
-.login-screen input {
+form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+input {
+  margin-top: 10px;
   padding: 0.5rem;
   font-size: 1rem;
-  margin-bottom: 10px;
   width: 200px;
   text-align: center;
 }
 
-.login-screen button {
+button {
+  margin-top: 10px;
   padding: 0.5rem 1rem;
   font-size: 1rem;
-  background: #fffc00;
+  background: #a7a41e;
   border: none;
-  cursor: pointer;
   border-radius: 5px;
+  cursor: pointer;
 }
 
+.toggle-buttons {
+  margin-bottom: 20px;
+}
+
+.toggle-buttons button {
+  margin: 0 10px;
+  padding: 0.4rem 1rem;
+  border: 2px solid #ccc;
+  border-radius: 5px;
+  background: #a7a41e;
+  cursor: pointer;
+}
+
+.toggle-buttons .active {
+  background: #a7a41e;
+  border-color: #a7a41e;
+}
+
+.login-note {
+  margin-top: 15px;
+  color: #555;
+}

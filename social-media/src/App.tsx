@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import Login from "./login";
+import Login from "./Login";
 import "./App.css";
 
 export default function App() {
