@@ -1,7 +1,7 @@
 import React, { useState, FormEvent, ChangeEvent } from "react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "./firebase"; // Make sure firebase.ts exports `db`
-
+//export const id
 // Define the props for the Login component
 interface LoginProps {
   onLogin: (username: string) => void; // Callback to proceed to main screen
@@ -23,18 +23,40 @@ export default function Login({ onLogin }: LoginProps) {
     }
 
     try {
-      const userRef = doc(db, "users", trimmed); // Reference to user doc
-      const userSnap = await getDoc(userRef); // Check if it exists
+      let userRef;
+      try {
+        userRef = doc(db, "users", trimmed); // Reference to user doc
+      } catch (err) {
+        console.error("❌ Error creating Firestore doc reference:", err);
+        setError("Internal error setting up Firestore.");
+        return;
+      }
+
+      let userSnap;
+      try {
+        userSnap = await getDoc(userRef); // Check if document exists
+      } catch (err) {
+        console.error("❌ Error reading user document:", err);
+        setError("Failed to read user data from database.");
+        return;
+      }
 
       if (isSignup) {
         // 🔐 Sign Up logic
         if (userSnap.exists()) {
           setError("Username already taken.");
         } else {
-          // Create new user with current timestamp
-          await setDoc(userRef, {
-            createdAt: new Date(),
-          });
+          const id = Math.floor(100000 + Math.random() * 900000);
+          try {
+            await setDoc(userRef, {
+              createdAt: new Date(),
+              id: id,
+            });
+          } catch (err) {
+            console.error("❌ Error writing new user document:", err);
+            setError("Failed to create account. Try again later.");
+            return;
+          }
           onLogin(trimmed); // Move to next screen
         }
       } else {
@@ -46,14 +68,19 @@ export default function Login({ onLogin }: LoginProps) {
         }
       }
     } catch (err) {
-      console.error("Error checking Firestore:", err);
+      console.error("❌ Unexpected error during login/signup:", err);
       setError("Something went wrong. Try again.");
     }
   };
 
   // Handle typing in the input box
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setUsername(e.target.value);
+    try {
+      setUsername(e.target.value);
+    } catch (err) {
+      console.error("❌ Error handling input change:", err);
+      setError("Problem updating username.");
+    }
   };
 
   return (
@@ -64,8 +91,13 @@ export default function Login({ onLogin }: LoginProps) {
       <div className="toggle-buttons">
         <button
           onClick={() => {
-            setIsSignup(false);
-            setError("");
+            try {
+              setIsSignup(false);
+              setError("");
+            } catch (err) {
+              console.error("❌ Error toggling to Log In:", err);
+              setError("Failed to switch mode.");
+            }
           }}
           className={!isSignup ? "active" : ""}
         >
@@ -73,8 +105,13 @@ export default function Login({ onLogin }: LoginProps) {
         </button>
         <button
           onClick={() => {
-            setIsSignup(true);
-            setError("");
+            try {
+              setIsSignup(true);
+              setError("");
+            } catch (err) {
+              console.error("❌ Error toggling to Sign Up:", err);
+              setError("Failed to switch mode.");
+            }
           }}
           className={isSignup ? "active" : ""}
         >
