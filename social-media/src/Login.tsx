@@ -1,18 +1,40 @@
 import React, { useState, FormEvent, ChangeEvent } from "react";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, getDocs, collection } from "firebase/firestore";
 import { db } from "./firebase"; // Make sure firebase.ts exports `db`
-//export const id
-// Define the props for the Login component
+
+// Pass both username and ID to parent
 interface LoginProps {
-  onLogin: (username: string) => void; // Callback to proceed to main screen
+  onLogin: (username: string, id: number) => void;
 }
 
 export default function Login({ onLogin }: LoginProps) {
-  const [username, setUsername] = useState(""); // Store entered username
-  const [isSignup, setIsSignup] = useState(false); // Toggle between login/signup
-  const [error, setError] = useState(""); // Display any error messages
+  const [username, setUsername] = useState("");
+  const [isSignup, setIsSignup] = useState(false);
+  const [error, setError] = useState("");
 
-  // Handle form submission
+  // Generate a unique 6-digit ID not already in Firestore
+  const generateUniqueId = async (): Promise<number> => {
+    let unique = false;
+    let newId = 0;
+
+    const usersSnapshot = await getDocs(collection(db, "users"));
+    const existingIds = new Set<number>();
+
+    usersSnapshot.forEach((doc) => {
+      const data = doc.data();
+      if (data.id) existingIds.add(data.id);
+    });
+
+    while (!unique) {
+      newId = Math.floor(100000 + Math.random() * 900000);
+      if (!existingIds.has(newId)) {
+        unique = true;
+      }
+    }
+
+    return newId;
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const trimmed = username.trim();
@@ -23,46 +45,24 @@ export default function Login({ onLogin }: LoginProps) {
     }
 
     try {
-      let userRef;
-      try {
-        userRef = doc(db, "users", trimmed); // Reference to user doc
-      } catch (err) {
-        console.error("❌ Error creating Firestore doc reference:", err);
-        setError("Internal error setting up Firestore.");
-        return;
-      }
-
-      let userSnap;
-      try {
-        userSnap = await getDoc(userRef); // Check if document exists
-      } catch (err) {
-        console.error("❌ Error reading user document:", err);
-        setError("Failed to read user data from database.");
-        return;
-      }
+      const userRef = doc(db, "users", trimmed);
+      const userSnap = await getDoc(userRef);
 
       if (isSignup) {
-        // 🔐 Sign Up logic
         if (userSnap.exists()) {
           setError("Username already taken.");
         } else {
-          const id = Math.floor(100000 + Math.random() * 900000);
-          try {
-            await setDoc(userRef, {
-              createdAt: new Date(),
-              id: id,
-            });
-          } catch (err) {
-            console.error("❌ Error writing new user document:", err);
-            setError("Failed to create account. Try again later.");
-            return;
-          }
-          onLogin(trimmed); // Move to next screen
+          const newId = await generateUniqueId(); // ✅ get unique ID
+          await setDoc(userRef, {
+            createdAt: new Date(),
+            id: newId,
+          });
+          onLogin(trimmed, newId); // ✅ pass username + ID
         }
       } else {
-        // 🔓 Log In logic
         if (userSnap.exists()) {
-          onLogin(trimmed); // Move to next screen
+          const userData = userSnap.data();
+          onLogin(trimmed, userData.id); // ✅ pass stored ID
         } else {
           setError("Incorrect username.");
         }
@@ -73,31 +73,19 @@ export default function Login({ onLogin }: LoginProps) {
     }
   };
 
-  // Handle typing in the input box
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    try {
-      setUsername(e.target.value);
-    } catch (err) {
-      console.error("❌ Error handling input change:", err);
-      setError("Problem updating username.");
-    }
+    setUsername(e.target.value);
   };
 
   return (
     <main className="login-screen">
       <h1>Welcome to SnapClone 📸</h1>
 
-      {/* Toggle between Log In and Sign Up */}
       <div className="toggle-buttons">
         <button
           onClick={() => {
-            try {
-              setIsSignup(false);
-              setError("");
-            } catch (err) {
-              console.error("❌ Error toggling to Log In:", err);
-              setError("Failed to switch mode.");
-            }
+            setIsSignup(false);
+            setError("");
           }}
           className={!isSignup ? "active" : ""}
         >
@@ -105,13 +93,8 @@ export default function Login({ onLogin }: LoginProps) {
         </button>
         <button
           onClick={() => {
-            try {
-              setIsSignup(true);
-              setError("");
-            } catch (err) {
-              console.error("❌ Error toggling to Sign Up:", err);
-              setError("Failed to switch mode.");
-            }
+            setIsSignup(true);
+            setError("");
           }}
           className={isSignup ? "active" : ""}
         >
@@ -119,7 +102,6 @@ export default function Login({ onLogin }: LoginProps) {
         </button>
       </div>
 
-      {/* Username input form */}
       <form onSubmit={handleSubmit}>
         <input
           type="text"
@@ -132,10 +114,8 @@ export default function Login({ onLogin }: LoginProps) {
         <button type="submit">{isSignup ? "Create Account" : "Log In"}</button>
       </form>
 
-      {/* Show error if there is one */}
       {error && <p className="error-message">{error}</p>}
 
-      {/* Small note */}
       <p className="login-note">
         {isSignup
           ? "Already have an account? Click Log In above."
