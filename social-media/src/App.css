@@ -69,11 +69,6 @@ button {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
-.button-group {
-  display: flex;
-  gap: 1rem;
-  margin-top: 20px;
-}
 
 button {
   padding: 10px 16px;
@@ -124,13 +119,15 @@ button:hover {
 .strip-container {
   display: flex;
   justify-content: space-between;
+  width: 1700px;
   gap: 10px; /* spacing between strips */
   padding: 20px;
 }
 .center_white_strip{
   background-color: yellow;
-  flex: 1;                     /* Equal width for all strips */
-  height: 800px; 
+
+  width: 1200px;
+  height: 850px;
   gap: 20px;              /* Set desired height */
   display: flex;
   justify-content: center;
@@ -139,18 +136,51 @@ button:hover {
 }
 .white_strip {
   background-color: yellow;
-  flex: 1;                     /* Equal width for all strips */
-  height: 750px;               /* Set desired height */
+  flex: 1;
+  height: 750px;
   display: flex;
-  justify-content: center;
-  align-items: center;
-  border: 2px solid black;     /* Optional: visible border */
+  flex-direction: column;     /* Stack children vertically */
+  align-items: center;        /* Center horizontally */
+  justify-content: flex-start;/* Align items to the top */
+  padding-top: 20px;          /* Optional spacing from top */
+  border: 2px solid green;
 }
+
 .buttons {
   padding: 20px;
   display: flex;
   align-items: flex-start; /* Align buttons to the top */
   gap: 20px;
   margin: 30px 0;
-  height: 150px; /* Adjust height as needed */
+  height: 700px; /* Adjust height as needed */
 }
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 300px;
+}
+
+.modal-content input {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+}
+
+.modal-content button {
+  margin-top: 5px;
+}
+
