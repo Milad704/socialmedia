@@ -11,7 +11,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyDc2GXUjj2pt9D7cmsKGCYFbQeim7-HTpU",
   authDomain: "socialmediaapp-170ea.firebaseapp.com",
   projectId: "socialmediaapp-170ea",
-  storageBucket: "socialmediaapp-170ea.firebasestorage.app",
+  storageBucket: "socialmediaapp-170ea.appspot.com",
   messagingSenderId: "874225109606",
   appId: "1:874225109606:web:d042112d8a9ba726c27ba7",
   measurementId: "G-SXRNB6ZM3P",

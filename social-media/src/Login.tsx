@@ -1,6 +1,6 @@
-import React, { useState, FormEvent, ChangeEvent } from "react";
+import React, { useState, useEffect, FormEvent, ChangeEvent } from "react";
 import { doc, getDoc, setDoc, getDocs, collection } from "firebase/firestore";
-import { db } from "./firebase"; // Make sure firebase.ts exports `db`
+import { db } from "./firebase"; // ✅ Ensure correct path to your firebase.ts
 
 // Pass both username and ID to parent
 interface LoginProps {
@@ -11,12 +11,29 @@ export default function Login({ onLogin }: LoginProps) {
   const [username, setUsername] = useState("");
   const [isSignup, setIsSignup] = useState(false);
   const [error, setError] = useState("");
+  const [allUsers, setAllUsers] = useState<string[]>([]); // ✅ Store fetched usernames
 
-  // Generate a unique 6-digit ID not already in Firestore
+  // ✅ Fetch all usernames on load
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, "users"));
+        const names: string[] = [];
+
+        snapshot.forEach((doc) => {
+          names.push(doc.id); // usernames are stored as document IDs
+        });
+
+        setAllUsers(names);
+      } catch (err) {
+        console.error("⚠️ Failed to fetch users:", err);
+      }
+    };
+
+    fetchUsers();
+  }, []);
+
   const generateUniqueId = async (): Promise<number> => {
-    let unique = false;
-    let newId = 0;
-
     const usersSnapshot = await getDocs(collection(db, "users"));
     const existingIds = new Set<number>();
 
@@ -25,12 +42,10 @@ export default function Login({ onLogin }: LoginProps) {
       if (data.id) existingIds.add(data.id);
     });
 
-    while (!unique) {
+    let newId = 0;
+    do {
       newId = Math.floor(100000 + Math.random() * 900000);
-      if (!existingIds.has(newId)) {
-        unique = true;
-      }
-    }
+    } while (existingIds.has(newId));
 
     return newId;
   };
@@ -52,17 +67,17 @@ export default function Login({ onLogin }: LoginProps) {
         if (userSnap.exists()) {
           setError("Username already taken.");
         } else {
-          const newId = await generateUniqueId(); // ✅ get unique ID
+          const newId = await generateUniqueId();
           await setDoc(userRef, {
             createdAt: new Date(),
             id: newId,
           });
-          onLogin(trimmed, newId); // ✅ pass username + ID
+          onLogin(trimmed, newId);
         }
       } else {
         if (userSnap.exists()) {
           const userData = userSnap.data();
-          onLogin(trimmed, userData.id); // ✅ pass stored ID
+          onLogin(trimmed, userData.id);
         } else {
           setError("Incorrect username.");
         }
@@ -79,7 +94,13 @@ export default function Login({ onLogin }: LoginProps) {
 
   return (
     <main className="login-screen">
-      <h1>Welcome to SnapClone 📸</h1>
+      <h1>
+        Welcome to SnapClone 📸
+        <br />
+        <span style={{ fontSize: "14px", color: "#888" }}>
+          Users: {allUsers.join(", ") || "loading..."}
+        </span>
+      </h1>
 
       <div className="toggle-buttons">
         <button

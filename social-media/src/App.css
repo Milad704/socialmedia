@@ -126,7 +126,7 @@ button:hover {
 .center_white_strip{
   background-color: yellow;
 
-  width: 1200px;
+  width: 1000px;
   height: 850px;
   gap: 20px;              /* Set desired height */
   display: flex;
@@ -184,3 +184,23 @@ button:hover {
   margin-top: 5px;
 }
 
+.white_strip {
+  flex: 1;
+  /* Your existing styles */
+}
+
+.center_white_strip {
+  flex: 2;
+  display: flex;
+  justify-content: center;
+}
+
+.right_strip {
+  flex: 1;
+  text-align: right;
+  padding-right: 20px;
+  font-weight: bold;
+  font-size: 1.5rem;
+  color: #333;
+  user-select: none;
+}
