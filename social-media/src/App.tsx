@@ -4,11 +4,10 @@ import "./App.css";
 import Camera from "./Camera";
 import AddFriendModal from "./AddFriendModal";
 import PendingRequestsModal from "./PendingRequestsModal";
-
+import ChatRoom from "./ChatRoom";
 import { doc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import { db } from "./firebase";
 
-// Helper to add friends mutually in Firestore
 async function addFriendToUsers(userA: string, userB: string) {
   try {
     const userADoc = doc(db, "users", userA);
@@ -42,7 +41,6 @@ export default function App() {
     null
   );
 
-  // Handle user login
   const handleLogin = (username: string, id: number) => {
     setUsername(username);
     setUserId(id);
@@ -56,7 +54,6 @@ export default function App() {
     setSelectedChatFriend(null);
   };
 
-  // Fetch friends list from Firestore whenever username changes
   useEffect(() => {
     if (!username) return;
 
@@ -80,17 +77,14 @@ export default function App() {
     fetchFriends();
   }, [username]);
 
-  // Show login screen if not logged in
   if (!loggedIn) {
     return <Login onLogin={handleLogin} />;
   }
 
-  // Show camera screen if toggled
   if (showCamera) {
     return <Camera onClose={() => setShowCamera(false)} userId={userId!} />;
   }
 
-  // Show gallery screen if toggled
   if (showGallery) {
     return (
       <main className="main-screen">
@@ -100,23 +94,20 @@ export default function App() {
     );
   }
 
-  // Show chat screen when a friend is selected
   if (selectedChatFriend) {
     return (
-      <main className="main-screen">
-        <h2>Chat with {selectedChatFriend}</h2>
-        {/* Replace this with your actual chat UI */}
-        <p>Chat UI coming soon...</p>
-        <button onClick={() => setSelectedChatFriend(null)}>Back</button>
-      </main>
+      <ChatRoom
+        currentUser={username}
+        friend={selectedChatFriend}
+        onBack={() => setSelectedChatFriend(null)}
+      />
     );
   }
 
-  // Main app screen
   return (
     <main className="main-screen">
       <div className="strip-container">
-        {/* Left strip with buttons */}
+        {/* Left Strip */}
         <div className="white_strip">
           <button onClick={() => setShowAddFriend(true)}>➕ Add Friend</button>
           <button
@@ -131,9 +122,48 @@ export default function App() {
           >
             💬 New Chat
           </button>
+
+          {/* Scrollable Friends List */}
+          <div
+            style={{
+              marginTop: "20px",
+              overflowY: "auto",
+              maxHeight: "600px",
+              width: "100%",
+              padding: "0 10px",
+            }}
+          >
+            <h4 style={{ marginBottom: "10px", textAlign: "center" }}>
+              Your Friends
+            </h4>
+            {friends.length === 0 ? (
+              <p style={{ textAlign: "center" }}>No friends yet.</p>
+            ) : (
+              <ul style={{ listStyle: "none", padding: 0 }}>
+                {friends.map((friend) => (
+                  <li
+                    key={friend}
+                    style={{
+                      marginBottom: "10px",
+                      backgroundColor: "#fff",
+                      color: "#000",
+                      padding: "8px 10px",
+                      borderRadius: "8px",
+                      textAlign: "center",
+                      cursor: "pointer",
+                      fontWeight: "bold",
+                    }}
+                    onClick={() => setSelectedChatFriend(friend)}
+                  >
+                    {friend}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
 
-        {/* Center strip */}
+        {/* Center Strip */}
         <div className="center_white_strip">
           <div className="buttons">
             <button onClick={() => setShowCamera(true)}>📸 Open Camera</button>
@@ -142,15 +172,12 @@ export default function App() {
             </button>
           </div>
         </div>
-
-        {/* You can add a "Chats" headline on the right using CSS */}
       </div>
 
       {/* Modals */}
       {showAddFriend && (
         <AddFriendModal onClose={closeAddFriendModal} currentUser={username} />
       )}
-
       {showPendingRequests && (
         <PendingRequestsModal
           onClose={closePendingRequestsModal}
@@ -158,7 +185,6 @@ export default function App() {
           addFriendToUsers={addFriendToUsers}
         />
       )}
-
       {showNewChat && (
         <div className="modal-overlay">
           <div className="modal-content">

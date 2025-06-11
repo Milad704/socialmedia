@@ -1,67 +1,73 @@
-import React, { useState } from "react";
+// ChatScreen.tsx
+import React, { useEffect, useState } from "react";
+import {
+  collection,
+  addDoc,
+  query,
+  orderBy,
+  onSnapshot,
+} from "firebase/firestore";
+import { db } from "./firebase";
 
 interface ChatScreenProps {
+  currentUser: string;
   friend: string;
   onClose: () => void;
-  currentUser: string;
 }
 
 export default function ChatScreen({
+  currentUser,
   friend,
   onClose,
-  currentUser,
 }: ChatScreenProps) {
-  const [messages, setMessages] = useState<{ from: string; text: string }[]>(
+  const [messages, setMessages] = useState<{ text: string; sender: string }[]>(
     []
   );
-  const [input, setInput] = useState("");
+  const [newMessage, setNewMessage] = useState("");
 
-  const sendMessage = () => {
-    if (input.trim() === "") return;
-    setMessages([...messages, { from: currentUser, text: input }]);
-    setInput("");
+  const chatId = [currentUser, friend].sort().join("_");
+
+  useEffect(() => {
+    const q = query(
+      collection(db, "chats", chatId, "messages"),
+      orderBy("timestamp")
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const msgs = snapshot.docs.map((doc) => doc.data()) as any;
+      setMessages(msgs);
+    });
+    return () => unsubscribe();
+  }, [chatId]);
+
+  const sendMessage = async () => {
+    if (!newMessage.trim()) return;
+    await addDoc(collection(db, "chats", chatId, "messages"), {
+      text: newMessage,
+      sender: currentUser,
+      timestamp: new Date(),
+    });
+    setNewMessage("");
   };
 
   return (
-    <main className="chat-screen">
-      <header>
-        <h2>Chat with {friend}</h2>
-        <button onClick={onClose}>Back</button>
-      </header>
-      <div
-        className="messages"
-        style={{
-          minHeight: "300px",
-          border: "1px solid #ccc",
-          padding: "10px",
-          overflowY: "auto",
-        }}
-      >
-        {messages.map((msg, i) => (
-          <p
-            key={i}
-            style={{ textAlign: msg.from === currentUser ? "right" : "left" }}
-          >
-            <strong>{msg.from}: </strong>
-            {msg.text}
-          </p>
-        ))}
-      </div>
-      <div className="input-area" style={{ marginTop: "10px" }}>
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <h3>Chat with {friend}</h3>
+        <div className="chat-box">
+          {messages.map((msg, i) => (
+            <p key={i}>
+              <strong>{msg.sender}:</strong> {msg.text}
+            </p>
+          ))}
+        </div>
         <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
+          value={newMessage}
+          onChange={(e) => setNewMessage(e.target.value)}
           placeholder="Type a message..."
-          style={{ width: "80%" }}
         />
-        <button
-          onClick={sendMessage}
-          style={{ width: "18%", marginLeft: "2%" }}
-        >
-          Send
-        </button>
+        <button onClick={sendMessage}>Send</button>
+        <button onClick={onClose}>Close</button>
       </div>
-    </main>
+    </div>
   );
 }

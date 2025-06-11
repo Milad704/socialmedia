@@ -1,58 +1,84 @@
 import React, { useEffect, useState } from "react";
-import { collection, doc, getDoc } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  query,
+  orderBy,
+  onSnapshot,
+  Timestamp,
+} from "firebase/firestore";
 import { db } from "./firebase";
 
-interface NewChatModalProps {
+interface ChatScreenProps {
   currentUser: string;
+  friendName: string;
   onClose: () => void;
-  onStartChat: (friendName: string) => void;
 }
 
-export default function NewChatModal({
+interface Message {
+  id: string;
+  sender: string;
+  text: string;
+  createdAt: Timestamp;
+}
+
+export default function ChatScreen({
   currentUser,
+  friendName,
   onClose,
-  onStartChat,
-}: NewChatModalProps) {
-  const [friends, setFriends] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+}: ChatScreenProps) {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [newMessage, setNewMessage] = useState("");
 
   useEffect(() => {
-    const fetchFriends = async () => {
-      try {
-        const userDoc = await getDoc(doc(db, "users", currentUser));
-        const data = userDoc.data();
-        const friendList = data?.friends || [];
-        setFriends(friendList);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error loading friends:", error);
-        setLoading(false);
-      }
-    };
+    const chatId = [currentUser, friendName].sort().join("_");
+    const messagesRef = collection(db, "chats", chatId, "messages");
+    const q = query(messagesRef, orderBy("createdAt", "asc"));
 
-    fetchFriends();
-  }, [currentUser]);
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const msgs = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...(doc.data() as Omit<Message, "id">),
+      }));
+      setMessages(msgs);
+    });
+
+    return () => unsubscribe();
+  }, [currentUser, friendName]);
+
+  const sendMessage = async () => {
+    if (newMessage.trim() === "") return;
+
+    const chatId = [currentUser, friendName].sort().join("_");
+    await addDoc(collection(db, "chats", chatId, "messages"), {
+      sender: currentUser,
+      text: newMessage,
+      createdAt: Timestamp.now(),
+    });
+
+    setNewMessage("");
+  };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <h3>New Chat</h3>
-        {loading ? (
-          <p>Loading friends...</p>
-        ) : friends.length === 0 ? (
-          <p>You have no friends to chat with.</p>
-        ) : (
-          <ul>
-            {friends.map((friend) => (
-              <li key={friend}>
-                {friend}{" "}
-                <button onClick={() => onStartChat(friend)}>💬 Chat</button>
-              </li>
-            ))}
-          </ul>
-        )}
-        <button onClick={onClose}>Close</button>
+    <div className="chat-screen">
+      <h3>Chat with {friendName}</h3>
+      <div className="messages">
+        {messages.map((msg) => (
+          <div
+            key={msg.id}
+            className={msg.sender === currentUser ? "my-msg" : "their-msg"}
+          >
+            <strong>{msg.sender}:</strong> {msg.text}
+          </div>
+        ))}
       </div>
+      <input
+        value={newMessage}
+        onChange={(e) => setNewMessage(e.target.value)}
+        placeholder="Type a message..."
+      />
+      <button onClick={sendMessage}>Send</button>
+      <button onClick={onClose}>Close Chat</button>
     </div>
   );
 }
