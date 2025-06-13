@@ -36,9 +36,14 @@ export default function App() {
   const [showAddFriend, setShowAddFriend] = useState(false);
   const [showPendingRequests, setShowPendingRequests] = useState(false);
   const [showNewChat, setShowNewChat] = useState(false);
+  const [showMakeGroupChat, setShowMakeGroupChat] = useState(false);
   const [friends, setFriends] = useState<string[]>([]);
   const [selectedChatFriend, setSelectedChatFriend] = useState<string | null>(
     null
+  );
+
+  const [selectedGroupFriends, setSelectedGroupFriends] = useState<string[]>(
+    []
   );
 
   const handleLogin = (username: string, id: number) => {
@@ -52,6 +57,34 @@ export default function App() {
   const closeNewChat = () => {
     setShowNewChat(false);
     setSelectedChatFriend(null);
+  };
+
+  const toggleGroupFriend = (friend: string) => {
+    if (selectedGroupFriends.includes(friend)) {
+      setSelectedGroupFriends(selectedGroupFriends.filter((f) => f !== friend));
+    } else {
+      setSelectedGroupFriends([...selectedGroupFriends, friend]);
+    }
+  };
+
+  const createGroupChat = () => {
+    if (selectedGroupFriends.length === 0) {
+      alert("Please select at least one friend for group chat.");
+      return;
+    }
+
+    // Include current user
+    const members = [username, ...selectedGroupFriends].sort();
+
+    // Example group chat ID based on sorted usernames and suffix "_group"
+    const chatId = members.join("_") + "_group";
+
+    // TODO: You can add Firestore logic here to create group chat document
+
+    // For now, open chat room using chatId as friend name (handle groups in ChatRoom component)
+    setSelectedChatFriend(chatId);
+    setShowMakeGroupChat(false);
+    setSelectedGroupFriends([]);
   };
 
   useEffect(() => {
@@ -118,9 +151,20 @@ export default function App() {
           </button>
           <button
             onClick={() => setShowNewChat(true)}
-            style={{ marginLeft: "10px" }}
+            style={{
+              marginLeft: "10px",
+              display: "block",
+              marginBottom: "8px",
+            }}
           >
             💬 New Chat
+          </button>
+
+          <button
+            onClick={() => setShowMakeGroupChat(true)}
+            style={{ marginLeft: "10px", display: "block" }}
+          >
+            👥 Make Groupchat
           </button>
 
           {/* Scrollable Friends List */}
@@ -203,6 +247,41 @@ export default function App() {
               </ul>
             )}
             <button onClick={() => setShowNewChat(false)}>Close</button>
+          </div>
+        </div>
+      )}
+
+      {showMakeGroupChat && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Select Friends for Group Chat</h3>
+            {friends.length === 0 ? (
+              <p>You have no friends yet.</p>
+            ) : (
+              <ul style={{ maxHeight: "300px", overflowY: "auto" }}>
+                {friends.map((friend) => (
+                  <li key={friend}>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={selectedGroupFriends.includes(friend)}
+                        onChange={() => toggleGroupFriend(friend)}
+                      />{" "}
+                      {friend}
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <button onClick={createGroupChat}>Create Group Chat</button>
+            <button
+              onClick={() => {
+                setShowMakeGroupChat(false);
+                setSelectedGroupFriends([]);
+              }}
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}

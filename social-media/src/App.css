@@ -361,3 +361,23 @@ button:hover {
   font-weight: 600;
   letter-spacing: 0.3px;
 }
+
+.delete-button {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.delete-button:hover {
+  opacity: 1;
+  color: red;
+}
+

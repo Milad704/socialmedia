@@ -1,86 +1,68 @@
 import React, { useEffect, useState } from "react";
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  updateDoc,
-  doc,
-} from "firebase/firestore";
+import { doc, getDoc, updateDoc, arrayRemove } from "firebase/firestore";
 import { db } from "./firebase";
 
 interface PendingRequestsModalProps {
   onClose: () => void;
   currentUser: string;
-  addFriendToUsers: (userA: string, userB: string) => Promise<void>; // added prop
-}
-
-interface FriendRequest {
-  id: string;
-  from: string;
-  status: string;
+  addFriendToUsers: (userA: string, userB: string) => Promise<void>;
 }
 
 export default function PendingRequestsModal({
   onClose,
   currentUser,
-  addFriendToUsers, // accept prop here
+  addFriendToUsers,
 }: PendingRequestsModalProps) {
-  const [requests, setRequests] = useState<FriendRequest[]>([]);
+  const [requests, setRequests] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchPendingRequests = async () => {
+    const fetchRequests = async () => {
       try {
-        const q = query(
-          collection(db, "friendRequests"),
-          where("to", "==", currentUser),
-          where("status", "==", "pending")
-        );
-        const snapshot = await getDocs(q);
-        const reqs: FriendRequest[] = [];
-        snapshot.forEach((doc) => {
-          reqs.push({ id: doc.id, ...doc.data() } as FriendRequest);
-        });
-        setRequests(reqs);
+        const userDoc = await getDoc(doc(db, "users", currentUser));
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          setRequests(data.requests || []);
+        } else {
+          setRequests([]);
+        }
         setLoading(false);
       } catch (err: any) {
-        setError("Failed to load pending requests: " + err.message);
+        setError("Failed to load requests: " + err.message);
         setLoading(false);
       }
     };
 
-    fetchPendingRequests();
+    fetchRequests();
   }, [currentUser]);
 
-  // Accept friend request — update request and add friends both ways
-  const acceptRequest = async (requestId: string, fromUser: string) => {
+  const acceptRequest = async (fromUser: string) => {
     try {
-      // Update friendRequests doc to accepted
-      await updateDoc(doc(db, "friendRequests", requestId), {
-        status: "accepted",
-      });
-
-      // Add each other as friends
       await addFriendToUsers(currentUser, fromUser);
 
-      // Remove accepted request from local state
-      setRequests((prev) => prev.filter((r) => r.id !== requestId));
+      // Remove request from Firestore
+      const userRef = doc(db, "users", currentUser);
+      await updateDoc(userRef, {
+        requests: arrayRemove(fromUser),
+      });
+
+      setRequests((prev) => prev.filter((r) => r !== fromUser));
     } catch (err: any) {
-      alert("Failed to accept request: " + err.message);
+      alert("Error accepting request: " + err.message);
     }
   };
 
-  // Reject friend request
-  const rejectRequest = async (requestId: string) => {
+  const rejectRequest = async (fromUser: string) => {
     try {
-      await updateDoc(doc(db, "friendRequests", requestId), {
-        status: "rejected",
+      const userRef = doc(db, "users", currentUser);
+      await updateDoc(userRef, {
+        requests: arrayRemove(fromUser),
       });
-      setRequests((prev) => prev.filter((r) => r.id !== requestId));
+
+      setRequests((prev) => prev.filter((r) => r !== fromUser));
     } catch (err: any) {
-      alert("Failed to reject request: " + err.message);
+      alert("Error rejecting request: " + err.message);
     }
   };
 
@@ -90,18 +72,20 @@ export default function PendingRequestsModal({
         <h3>Pending Friend Requests</h3>
         {error && <p style={{ color: "red" }}>{error}</p>}
         {loading ? (
-          <p>Loading pending requests...</p>
+          <p>Loading...</p>
         ) : requests.length === 0 ? (
-          <p>No pending friend requests.</p>
+          <p>No pending requests.</p>
         ) : (
           <ul>
-            {requests.map((req) => (
-              <li key={req.id} style={{ marginBottom: "10px" }}>
-                {req.from} wants to be your friend{" "}
-                <button onClick={() => acceptRequest(req.id, req.from)}>
-                  Accept ✅
+            {requests.map((username) => (
+              <li key={username} style={{ marginBottom: "10px" }}>
+                {username} wants to be your friend{" "}
+                <button onClick={() => acceptRequest(username)}>
+                  ✅ Accept
                 </button>{" "}
-                <button onClick={() => rejectRequest(req.id)}>Reject ❌</button>
+                <button onClick={() => rejectRequest(username)}>
+                  ❌ Reject
+                </button>
               </li>
             ))}
           </ul>

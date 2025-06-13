@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
+import { db } from "./firebase";
 import {
   collection,
   getDocs,
   doc,
   updateDoc,
   arrayUnion,
+  getDoc,
 } from "firebase/firestore";
-import { db } from "./firebase";
 
 interface AddFriendModalProps {
   currentUser: string;
@@ -19,70 +20,61 @@ export default function AddFriendModal({
 }: AddFriendModalProps) {
   const [allUsers, setAllUsers] = useState<string[]>([]);
   const [friends, setFriends] = useState<string[]>([]);
-  const [existingChats, setExistingChats] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sentRequests, setSentRequests] = useState<string[]>([]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const usersSnap = await getDocs(collection(db, "users"));
-        const chatsSnap = await getDocs(collection(db, "chats"));
+    const fetchUsers = async () => {
+      const querySnapshot = await getDocs(collection(db, "users"));
+      const users: string[] = [];
+      let currentUserFriends: string[] = [];
+      let currentUserRequests: string[] = [];
 
-        const usersList: string[] = [];
-        let myFriends: string[] = [];
-        const chatPartnersSet = new Set<string>();
+      querySnapshot.forEach((docSnap) => {
+        const username = docSnap.id;
+        const data = docSnap.data();
+        if (username === currentUser) {
+          currentUserFriends = data.friends || [];
+        } else {
+          users.push(username);
+        }
+      });
 
-        usersSnap.forEach((uDoc) => {
-          const username = uDoc.id;
-          const data = uDoc.data();
-
-          if (username === currentUser) {
-            myFriends = data.friends || [];
-          } else {
-            usersList.push(username);
-          }
-        });
-
-        chatsSnap.forEach((cDoc) => {
-          const data = cDoc.data() as { users?: string[] };
-          const chatUsers = data.users || [];
-
-          if (chatUsers.includes(currentUser)) {
-            chatUsers.forEach((u) => {
-              if (u !== currentUser) chatPartnersSet.add(u);
-            });
-          }
-        });
-
-        setAllUsers(usersList);
-        setFriends(myFriends);
-        setExistingChats(Array.from(chatPartnersSet));
-      } catch (err) {
-        console.error("Fetch error:", err);
+      // Get sent requests (people who already received your request)
+      const myDoc = await getDoc(doc(db, "users", currentUser));
+      if (myDoc.exists()) {
+        const myData = myDoc.data();
+        const mySent = myData?.sentRequests || []; // optional: if you store it this way
+        setSentRequests(mySent);
       }
+
+      setAllUsers(users);
+      setFriends(currentUserFriends);
     };
 
-    fetchData();
+    fetchUsers();
   }, [currentUser]);
 
   const handleSendRequest = async (recipient: string) => {
-    try {
-      const uDoc = doc(db, "users", recipient);
-      await updateDoc(uDoc, {
-        requests: arrayUnion(currentUser),
-      });
-      alert(`Friend request sent to ${recipient}`);
-    } catch (err) {
-      console.error("Failed to send request:", err);
-      alert("Unable to send request.");
-    }
+    const recipientRef = doc(db, "users", recipient);
+
+    await updateDoc(recipientRef, {
+      requests: arrayUnion(currentUser),
+    });
+
+    // Optional: if you want to store "sentRequests" in the sender’s doc:
+    // await updateDoc(doc(db, "users", currentUser), {
+    //   sentRequests: arrayUnion(recipient),
+    // });
+
+    setSentRequests((prev) => [...prev, recipient]);
+    alert(`Friend request sent to ${recipient}`);
   };
 
   const filteredUsers = allUsers.filter(
     (u) =>
       u.toLowerCase().includes(searchQuery.toLowerCase()) &&
-      !friends.includes(u) &&
-      !existingChats.includes(u)
+      !friends.includes(u)
   );
 
   return (
@@ -101,30 +93,25 @@ export default function AddFriendModal({
             borderRadius: "5px",
           }}
         />
-
-        <ul
-          style={{
-            listStyle: "none",
-            padding: 0,
-            maxHeight: "300px",
-            overflowY: "auto",
-          }}
-        >
+        <ul style={{ listStyle: "none", padding: 0 }}>
           {filteredUsers.length === 0 ? (
             <p>No matching users found.</p>
           ) : (
-            filteredUsers.map((u) => (
-              <li key={u} style={{ marginBottom: "10px" }}>
-                <strong>{u}</strong>{" "}
-                <button onClick={() => handleSendRequest(u)}>➕ Add</button>
+            filteredUsers.map((user) => (
+              <li key={user} style={{ marginBottom: "10px" }}>
+                {user}{" "}
+                {sentRequests.includes(user) ? (
+                  <button disabled>✅ Sent</button>
+                ) : (
+                  <button onClick={() => handleSendRequest(user)}>
+                    ➕ Add
+                  </button>
+                )}
               </li>
             ))
           )}
         </ul>
-
-        <button onClick={onClose} style={{ marginTop: "10px" }}>
-          Close
-        </button>
+        <button onClick={onClose}>Close</button>
       </div>
     </div>
   );

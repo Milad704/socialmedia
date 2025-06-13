@@ -1,4 +1,3 @@
-// ChatRoom.tsx
 import React, { useEffect, useState, useRef } from "react";
 import {
   addDoc,
@@ -7,6 +6,8 @@ import {
   orderBy,
   query,
   serverTimestamp,
+  doc,
+  deleteDoc,
 } from "firebase/firestore";
 import { db } from "./firebase";
 
@@ -25,13 +26,13 @@ export default function ChatRoom({
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  // Create a unique chat ID based on usernames (alphabetically sorted)
+  // Unique chat ID
   const chatId =
     currentUser < friend
       ? `${currentUser}_${friend}`
       : `${friend}_${currentUser}`;
 
-  // Listen for new messages in Firestore in real time
+  // Real-time listener for messages
   useEffect(() => {
     const messagesRef = collection(db, "chats", chatId, "messages");
     const q = query(messagesRef, orderBy("timestamp"));
@@ -43,12 +44,12 @@ export default function ChatRoom({
     return () => unsubscribe();
   }, [chatId]);
 
-  // Scroll to bottom on new message
+  // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Send a new message to Firestore
+  // Send a message
   const sendMessage = async () => {
     if (!newMessage.trim()) return;
 
@@ -61,23 +62,48 @@ export default function ChatRoom({
     setNewMessage("");
   };
 
+  // Delete a message (only your own)
+  const deleteMessage = async (msgId: string) => {
+    const messageDocRef = doc(db, "chats", chatId, "messages", msgId);
+    await deleteDoc(messageDocRef);
+  };
+
   return (
     <div className="chat-room">
       <h2>Chat with {friend}</h2>
       <div className="messages">
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={
-              msg.sender === currentUser ? "my-message" : "their-message"
-            }
-          >
-            <strong>{msg.sender === currentUser ? "You" : msg.sender}:</strong>{" "}
-            {msg.text}
-          </div>
-        ))}
+        {messages.map((msg) => {
+          const isMine = msg.sender === currentUser;
+          return (
+            <div
+              key={msg.id}
+              className={isMine ? "my-message" : "their-message"}
+              style={{
+                position: "relative",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              {isMine && (
+                <button
+                  className="delete-button"
+                  title="Delete message"
+                  onClick={() => deleteMessage(msg.id)}
+                  style={{ order: 0 }}
+                >
+                  🗑️
+                </button>
+              )}
+              <div style={{ order: 1 }}>
+                <strong>{isMine ? "You" : msg.sender}:</strong> {msg.text}
+              </div>
+            </div>
+          );
+        })}
         <div ref={messagesEndRef}></div>
       </div>
+
       <div className="chat-input">
         <input
           type="text"
