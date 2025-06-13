@@ -1,134 +1,130 @@
-import React, { useState, useEffect } from "react";
-import { collection, getDocs, addDoc, query, where } from "firebase/firestore";
+import React, { useEffect, useState } from "react";
+import {
+  collection,
+  getDocs,
+  doc,
+  updateDoc,
+  arrayUnion,
+} from "firebase/firestore";
 import { db } from "./firebase";
 
 interface AddFriendModalProps {
-  onClose: () => void;
   currentUser: string;
+  onClose: () => void;
 }
 
 export default function AddFriendModal({
-  onClose,
   currentUser,
+  onClose,
 }: AddFriendModalProps) {
-  const [users, setUsers] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [requestSentTo, setRequestSentTo] = useState<Set<string>>(new Set());
-  const [sendError, setSendError] = useState<string | null>(null);
+  const [allUsers, setAllUsers] = useState<string[]>([]);
+  const [friends, setFriends] = useState<string[]>([]);
+  const [existingChats, setExistingChats] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    const fetchUsers = async () => {
+    const fetchData = async () => {
       try {
-        // Step 1: Fetch all users except currentUser
-        const usersSnapshot = await getDocs(collection(db, "users"));
-        const allUsernames: string[] = [];
-        usersSnapshot.forEach((doc) => {
-          if (doc.id !== currentUser) {
-            allUsernames.push(doc.id);
+        const usersSnap = await getDocs(collection(db, "users"));
+        const chatsSnap = await getDocs(collection(db, "chats"));
+
+        const usersList: string[] = [];
+        let myFriends: string[] = [];
+        const chatPartnersSet = new Set<string>();
+
+        usersSnap.forEach((uDoc) => {
+          const username = uDoc.id;
+          const data = uDoc.data();
+
+          if (username === currentUser) {
+            myFriends = data.friends || [];
+          } else {
+            usersList.push(username);
           }
         });
 
-        // Step 2: Fetch all accepted friend requests involving currentUser
-        // friendRequests where (from == currentUser OR to == currentUser) AND status == 'accepted'
-        const friendRequestsRef = collection(db, "friendRequests");
+        chatsSnap.forEach((cDoc) => {
+          const data = cDoc.data() as { users?: string[] };
+          const chatUsers = data.users || [];
 
-        const q1 = query(
-          friendRequestsRef,
-          where("from", "==", currentUser),
-          where("status", "==", "accepted")
-        );
-        const q2 = query(
-          friendRequestsRef,
-          where("to", "==", currentUser),
-          where("status", "==", "accepted")
-        );
-
-        const [q1Snapshot, q2Snapshot] = await Promise.all([
-          getDocs(q1),
-          getDocs(q2),
-        ]);
-
-        // Extract friend usernames from accepted requests
-        const friendsSet = new Set<string>();
-
-        q1Snapshot.forEach((doc) => {
-          const data = doc.data();
-          if (data.to) friendsSet.add(data.to);
+          if (chatUsers.includes(currentUser)) {
+            chatUsers.forEach((u) => {
+              if (u !== currentUser) chatPartnersSet.add(u);
+            });
+          }
         });
 
-        q2Snapshot.forEach((doc) => {
-          const data = doc.data();
-          if (data.from) friendsSet.add(data.from);
-        });
-
-        // Step 3: Filter out friends from allUsernames
-        const unfriendedUsers = allUsernames.filter(
-          (username) => !friendsSet.has(username)
-        );
-
-        setUsers(unfriendedUsers);
-        setLoading(false);
-      } catch (err: any) {
-        setError("Failed to load users: " + err.message);
-        console.error("❌ Error fetching users:", err);
-        setLoading(false);
+        setAllUsers(usersList);
+        setFriends(myFriends);
+        setExistingChats(Array.from(chatPartnersSet));
+      } catch (err) {
+        console.error("Fetch error:", err);
       }
     };
 
-    fetchUsers();
+    fetchData();
   }, [currentUser]);
 
-  const sendFriendRequest = async (toUsername: string) => {
-    console.log(
-      `📨 Sending friend request from ${currentUser} to ${toUsername}...`
-    );
-    setSendError(null);
-
+  const handleSendRequest = async (recipient: string) => {
     try {
-      const docRef = await addDoc(collection(db, "friendRequests"), {
-        from: currentUser,
-        to: toUsername,
-        status: "pending",
-        createdAt: new Date(),
+      const uDoc = doc(db, "users", recipient);
+      await updateDoc(uDoc, {
+        requests: arrayUnion(currentUser),
       });
-
-      console.log("✅ Friend request sent! Doc ID:", docRef.id);
-      setRequestSentTo((prev) => new Set(prev).add(toUsername));
-    } catch (err: any) {
-      console.error("❌ Failed to send friend request:", err);
-      setSendError("Failed to send friend request: " + err.message);
+      alert(`Friend request sent to ${recipient}`);
+    } catch (err) {
+      console.error("Failed to send request:", err);
+      alert("Unable to send request.");
     }
   };
+
+  const filteredUsers = allUsers.filter(
+    (u) =>
+      u.toLowerCase().includes(searchQuery.toLowerCase()) &&
+      !friends.includes(u) &&
+      !existingChats.includes(u)
+  );
 
   return (
     <div className="modal-overlay">
       <div className="modal-content">
-        <h3>👥 Unfriended Users</h3>
+        <h3>Search for Friends</h3>
+        <input
+          type="text"
+          placeholder="Search by username..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{
+            padding: "8px",
+            width: "100%",
+            marginBottom: "12px",
+            borderRadius: "5px",
+          }}
+        />
 
-        {error && <p style={{ color: "red" }}>{error}</p>}
-        {sendError && <p style={{ color: "red" }}>{sendError}</p>}
-
-        {loading ? (
-          <p>Loading users...</p>
-        ) : (
-          <ul>
-            {users.map((name) => (
-              <li key={name} style={{ marginBottom: "10px" }}>
-                {name}{" "}
-                {requestSentTo.has(name) ? (
-                  <span style={{ color: "green" }}>Sent Request ✅</span>
-                ) : (
-                  <button onClick={() => sendFriendRequest(name)}>
-                    Add Friend ➕
-                  </button>
-                )}
+        <ul
+          style={{
+            listStyle: "none",
+            padding: 0,
+            maxHeight: "300px",
+            overflowY: "auto",
+          }}
+        >
+          {filteredUsers.length === 0 ? (
+            <p>No matching users found.</p>
+          ) : (
+            filteredUsers.map((u) => (
+              <li key={u} style={{ marginBottom: "10px" }}>
+                <strong>{u}</strong>{" "}
+                <button onClick={() => handleSendRequest(u)}>➕ Add</button>
               </li>
-            ))}
-          </ul>
-        )}
+            ))
+          )}
+        </ul>
 
-        <button onClick={onClose}>❌ Close</button>
+        <button onClick={onClose} style={{ marginTop: "10px" }}>
+          Close
+        </button>
       </div>
     </div>
   );

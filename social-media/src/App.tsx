@@ -139,23 +139,17 @@ export default function App() {
             {friends.length === 0 ? (
               <p style={{ textAlign: "center" }}>No friends yet.</p>
             ) : (
-              <ul style={{ listStyle: "none", padding: 0 }}>
+              <ul className="friend-list">
                 {friends.map((friend) => (
                   <li
                     key={friend}
-                    style={{
-                      marginBottom: "10px",
-                      backgroundColor: "#fff",
-                      color: "#000",
-                      padding: "8px 10px",
-                      borderRadius: "8px",
-                      textAlign: "center",
-                      cursor: "pointer",
-                      fontWeight: "bold",
-                    }}
+                    className="friend-item"
                     onClick={() => setSelectedChatFriend(friend)}
                   >
-                    {friend}
+                    <div className="friend-avatar">
+                      {friend.slice(0, 2).toUpperCase()}
+                    </div>
+                    <div className="friend-name">{friend}</div>
                   </li>
                 ))}
               </ul>

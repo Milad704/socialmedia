@@ -316,3 +316,48 @@ button:hover {
   color: #e5e500;
 }
 
+.friend-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.friend-item {
+  display: flex;
+  align-items: center;
+  background-color: #c1dd22;
+  color: #1a1a1a;
+  padding: 6px 10px;
+  border-radius: 14px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.friend-item:hover {
+  background-color: #f3f3f3;
+}
+
+.friend-avatar {
+  background-color: #ffeb3b;
+  color: #000;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  margin-right: 14px;
+  font-size: 17px;
+}
+
+.friend-name {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
