@@ -1,19 +1,19 @@
-import React, { useEffect, useState, useRef } from "react";
+// ChatRoom.tsx
+import React, { useState, useEffect } from "react";
 import {
-  addDoc,
-  collection,
-  onSnapshot,
-  orderBy,
-  query,
-  serverTimestamp,
   doc,
-  deleteDoc,
+  getDoc,
+  onSnapshot,
+  collection,
+  query,
+  orderBy,
+  addDoc,
 } from "firebase/firestore";
 import { db } from "./firebase";
 
 interface ChatRoomProps {
   currentUser: string;
-  friend: string;
+  friend: string;          // username or groupChat ID
   onBack: () => void;
 }
 
@@ -23,98 +23,97 @@ export default function ChatRoom({
   onBack,
 }: ChatRoomProps) {
   const [messages, setMessages] = useState<any[]>([]);
-  const [newMessage, setNewMessage] = useState("");
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const [newMsg, setNewMsg] = useState("");
 
-  // Unique chat ID
-  const chatId =
-    currentUser < friend
-      ? `${currentUser}_${friend}`
-      : `${friend}_${currentUser}`;
+  // Group metadata
+  const [isGroup, setIsGroup] = useState(false);
+  const [groupName, setGroupName] = useState("");
+  const [participants, setParticipants] = useState<string[]>([]);
 
-  // Real-time listener for messages
+  // Load group name & members if this is a group chat
   useEffect(() => {
-    const messagesRef = collection(db, "chats", chatId, "messages");
-    const q = query(messagesRef, orderBy("timestamp"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      setMessages(msgs);
-    });
+    (async () => {
+      const groupRef = doc(db, "groupChats", friend);
+      const groupSnap = await getDoc(groupRef);
+      if (groupSnap.exists()) {
+        setIsGroup(true);
+        const data = groupSnap.data();
+        setGroupName(data.name);
+        setParticipants(data.members || []);
+      } else {
+        setIsGroup(false);
+      }
+    })();
+  }, [friend]);
 
-    return () => unsubscribe();
-  }, [chatId]);
-
-  // Auto-scroll to bottom
+  // Subscribe to messages in the proper collection
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    const path = isGroup
+      ? collection(db, "groupChats", friend, "messages")
+      : collection(db, "chats", friend, "messages");
 
-  // Send a message
+    const q = query(path, orderBy("createdAt"));
+    const unsub = onSnapshot(q, (snap) =>
+      setMessages(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+    );
+
+    return unsub;
+  }, [friend, isGroup]);
+
+  // **Send message** handler (restored)
   const sendMessage = async () => {
-    if (!newMessage.trim()) return;
+    const text = newMsg.trim();
+    if (!text) return;
 
-    const messagesRef = collection(db, "chats", chatId, "messages");
-    await addDoc(messagesRef, {
-      sender: currentUser,
-      text: newMessage,
-      timestamp: serverTimestamp(),
-    });
-    setNewMessage("");
-  };
+    const path = isGroup
+      ? collection(db, "groupChats", friend, "messages")
+      : collection(db, "chats", friend, "messages");
 
-  // Delete a message (only your own)
-  const deleteMessage = async (msgId: string) => {
-    const messageDocRef = doc(db, "chats", chatId, "messages", msgId);
-    await deleteDoc(messageDocRef);
+    try {
+      await addDoc(path, {
+        text,
+        sender: currentUser,
+        createdAt: new Date(),
+      });
+      setNewMsg("");
+    } catch (err) {
+      console.error("❌ Error sending message:", err);
+    }
   };
 
   return (
-    <div className="chat-room">
-      <h2>Chat with {friend}</h2>
-      <div className="messages">
-        {messages.map((msg) => {
-          const isMine = msg.sender === currentUser;
-          return (
-            <div
-              key={msg.id}
-              className={isMine ? "my-message" : "their-message"}
-              style={{
-                position: "relative",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-              }}
-            >
-              {isMine && (
-                <button
-                  className="delete-button"
-                  title="Delete message"
-                  onClick={() => deleteMessage(msg.id)}
-                  style={{ order: 0 }}
-                >
-                  🗑️
-                </button>
-              )}
-              <div style={{ order: 1 }}>
-                <strong>{isMine ? "You" : msg.sender}:</strong> {msg.text}
-              </div>
-            </div>
-          );
-        })}
-        <div ref={messagesEndRef}></div>
-      </div>
+    <main className="chat-room">
+      <header>
+        <button onClick={onBack}>◀️ Back</button>
+        <h2>{isGroup ? groupName : friend}</h2>
+        {isGroup && participants.length > 0 && (
+          <p className="chat-participants">
+            Participants: {participants.join(", ")}
+          </p>
+        )}
+      </header>
+
+      <section className="messages">
+        {messages.map((msg) => (
+          <div
+            key={msg.id}
+            className={msg.sender === currentUser ? "my-message" : "their-message"}
+          >
+            <strong>{msg.sender}</strong>
+            <span>{msg.text}</span>
+          </div>
+        ))}
+      </section>
 
       <div className="chat-input">
         <input
-          type="text"
-          value={newMessage}
-          placeholder="Type your message..."
-          onChange={(e) => setNewMessage(e.target.value)}
+          value={newMsg}
+          onChange={(e) => setNewMsg(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+          placeholder="Type a message..."
         />
         <button onClick={sendMessage}>Send</button>
-        <button onClick={onBack}>Back</button>
       </div>
-    </div>
+    </main>
   );
 }
