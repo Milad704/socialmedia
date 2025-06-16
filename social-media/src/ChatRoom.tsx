@@ -1,4 +1,3 @@
-// ChatRoom.tsx
 import React, { useState, useEffect } from "react";
 import {
   doc,
@@ -12,8 +11,12 @@ import {
 import { db } from "./firebase";
 
 interface ChatRoomProps {
+<<<<<<< Updated upstream
   currentUser: string;
-  friend: string;          // username or groupChat ID
+=======
+  currentUser: string; // username
+>>>>>>> Stashed changes
+  friend: string; // username or groupChat ID
   onBack: () => void;
 }
 
@@ -25,56 +28,122 @@ export default function ChatRoom({
   const [messages, setMessages] = useState<any[]>([]);
   const [newMsg, setNewMsg] = useState("");
 
-  // Group metadata
   const [isGroup, setIsGroup] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [participants, setParticipants] = useState<string[]>([]);
 
-  // Load group name & members if this is a group chat
+<<<<<<< Updated upstream
+  // Load group metadata if group
+=======
+  // Check if this is a group chat by seeing if current user has group metadata stored under chats/{friend}
+>>>>>>> Stashed changes
   useEffect(() => {
-    (async () => {
-      const groupRef = doc(db, "groupChats", friend);
-      const groupSnap = await getDoc(groupRef);
-      if (groupSnap.exists()) {
+    const checkGroup = async () => {
+      const chatMetaRef = doc(db, "users", currentUser, "chats", friend);
+      const snap = await getDoc(chatMetaRef);
+      const data = snap.data();
+      if (snap.exists() && data?.isGroup) {
         setIsGroup(true);
-        const data = groupSnap.data();
-        setGroupName(data.name);
+        setGroupName(data.name || "Unnamed Group");
         setParticipants(data.members || []);
       } else {
         setIsGroup(false);
+        setGroupName("");
+        setParticipants([]);
       }
-    })();
-  }, [friend]);
+    };
+    checkGroup();
+  }, [currentUser, friend]);
 
-  // Subscribe to messages in the proper collection
+<<<<<<< Updated upstream
+  // Subscribe to messages under currentUser's doc
   useEffect(() => {
-    const path = isGroup
-      ? collection(db, "groupChats", friend, "messages")
-      : collection(db, "chats", friend, "messages");
+    if (!currentUser) return;
 
-    const q = query(path, orderBy("createdAt"));
+    // Build collection path based on isGroup
+    const messagesCollection = isGroup
+      ? collection(db, "users", currentUser, "groupChats", friend, "messages")
+      : collection(db, "users", currentUser, "chats", friend, "messages");
+
+    const q = query(messagesCollection, orderBy("createdAt"));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setMessages(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+    });
+
+    return () => unsubscribe();
+  }, [currentUser, friend, isGroup]);
+
+  // Send message saved under currentUser's doc
+=======
+  // Listen for messages under users/{user}/chats/{friend}/messages
+  useEffect(() => {
+    const msgRef = collection(
+      db,
+      "users",
+      currentUser,
+      "chats",
+      friend,
+      "messages"
+    );
+    const q = query(msgRef, orderBy("createdAt"));
+
     const unsub = onSnapshot(q, (snap) =>
-      setMessages(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+      setMessages(snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })))
     );
 
-    return unsub;
-  }, [friend, isGroup]);
+    return () => unsub();
+  }, [currentUser, friend]);
 
-  // **Send message** handler (restored)
+>>>>>>> Stashed changes
   const sendMessage = async () => {
     const text = newMsg.trim();
     if (!text) return;
 
-    const path = isGroup
-      ? collection(db, "groupChats", friend, "messages")
-      : collection(db, "chats", friend, "messages");
+<<<<<<< Updated upstream
+    const messagesCollection = isGroup
+      ? collection(db, "users", currentUser, "groupChats", friend, "messages")
+      : collection(db, "users", currentUser, "chats", friend, "messages");
 
     try {
-      await addDoc(path, {
+      await addDoc(messagesCollection, {
         text,
         sender: currentUser,
         createdAt: new Date(),
       });
+=======
+    const message = {
+      text,
+      sender: currentUser,
+      createdAt: new Date(),
+    };
+
+    try {
+      if (isGroup) {
+        // Save message under ALL members’ chats/{groupId}/messages
+        await Promise.all(
+          participants.map((participant) =>
+            addDoc(
+              collection(db, "users", participant, "chats", friend, "messages"),
+              message
+            )
+          )
+        );
+      } else {
+        // 1-on-1 chat between currentUser and friend
+        await Promise.all([
+          addDoc(
+            collection(db, "users", currentUser, "chats", friend, "messages"),
+            message
+          ),
+          addDoc(
+            collection(db, "users", friend, "chats", currentUser, "messages"),
+            message
+          ),
+        ]);
+      }
+
+>>>>>>> Stashed changes
       setNewMsg("");
     } catch (err) {
       console.error("❌ Error sending message:", err);
@@ -97,10 +166,11 @@ export default function ChatRoom({
         {messages.map((msg) => (
           <div
             key={msg.id}
-            className={msg.sender === currentUser ? "my-message" : "their-message"}
+            className={
+              msg.sender === currentUser ? "my-message" : "their-message"
+            }
           >
-            <strong>{msg.sender}</strong>
-            <span>{msg.text}</span>
+            <strong>{msg.sender}</strong>: <span>{msg.text}</span>
           </div>
         ))}
       </section>
