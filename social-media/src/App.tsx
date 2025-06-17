@@ -5,6 +5,7 @@ import Camera from "./Camera";
 import AddFriendModal from "./AddFriendModal";
 import PendingRequestsModal from "./PendingRequestsModal";
 import ChatRoom from "./ChatRoom";
+import Gallery from "./Gallery"; // <-- new import here
 import {
   doc,
   getDoc,
@@ -47,10 +48,11 @@ export default function App() {
   const [selectedChatFriend, setSelectedChatFriend] = useState<string | null>(
     null
   );
-  const [selectedGroupFriends, setSelectedGroupFriends] = useState<string[]>(
-    []
-  );
+  const [selectedGroupFriends, setSelectedGroupFriends] = useState<string[]>([]);
   const [newGroupName, setNewGroupName] = useState("");
+
+  // NEW STATE to hold selected image URL for the image box
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
 
   const handleLogin = (username: string, _id: number) => {
     setUsername(username);
@@ -137,12 +139,8 @@ export default function App() {
   if (showCamera)
     return <Camera onClose={() => setShowCamera(false)} userId={username} />;
   if (showGallery)
-    return (
-      <main className="main-screen">
-        <h2>Gallery (Coming Soon)</h2>
-        <button onClick={() => setShowGallery(false)}>Back</button>
-      </main>
-    );
+    return <Gallery userId={username} onClose={() => setShowGallery(false)} />;
+
   if (selectedChatFriend)
     return (
       <ChatRoom
@@ -157,9 +155,7 @@ export default function App() {
       <div className="strip-container">
         <div className="white_strip">
           <div className="sidebar-button-grid">
-            <button onClick={() => setShowAddFriend(true)}>
-              ➕ Add Friend
-            </button>
+            <button onClick={() => setShowAddFriend(true)}>➕ Add Friend</button>
             <button onClick={() => setShowPendingRequests(true)}>
               📩 Pending Requests
             </button>
@@ -183,9 +179,7 @@ export default function App() {
                     className="friend-item"
                     onClick={() => setSelectedChatFriend(f)}
                   >
-                    <div className="friend-avatar">
-                      {f.slice(0, 2).toUpperCase()}
-                    </div>
+                    <div className="friend-avatar">{f.slice(0, 2).toUpperCase()}</div>
                     <div className="friend-name">{f}</div>
                   </li>
                 ))}
@@ -197,9 +191,33 @@ export default function App() {
         <div className="center_white_strip">
           <div className="buttons">
             <button onClick={() => setShowCamera(true)}>📸 Open Camera</button>
-            <button onClick={() => setShowGallery(true)}>
-              🖼️ View Pictures
-            </button>
+            <button onClick={() => setShowGallery(true)}>🖼️ View Pictures</button>
+          </div>
+
+          {/* BIGGER IMAGE BOX below the buttons */}
+          <div style={{ marginTop: "30px", textAlign: "center" }}>
+            <h4>📷 Selected Image</h4>
+            <div
+              style={{
+                width: "400px",
+                height: "300px",
+                border: "3px solid #888",
+                borderRadius: "10px",
+                backgroundColor: "#f0f0f0",
+                margin: "auto",
+                overflow: "hidden",
+                boxShadow: "0 0 10px rgba(0,0,0,0.1)",
+              }}
+            >
+              <img
+                src={
+                  selectedImageUrl ||
+                  "https://via.placeholder.com/400x300.png?text=No+Image+Selected"
+                }
+                alt="Selected"
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+            </div>
           </div>
         </div>
       </div>
