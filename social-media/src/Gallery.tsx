@@ -1,33 +1,43 @@
-import React, { useEffect, useState } from "react";
-import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
+import React, { useEffect, useState, Dispatch, SetStateAction } from "react";
+import { collection, getDocs, deleteDoc, doc, setDoc } from "firebase/firestore";
 import { db } from "./firebase";
 
 interface GalleryProps {
   userId: string; // username
   onClose: () => void;
+  setSelectedImageUrl: Dispatch<SetStateAction<string | null>>;
+  setSelectedImageName: Dispatch<SetStateAction<string | null>>;
 }
 
 interface ImageData {
   id: string;
   imageName: string;
-  imageData: string;
+  imageData: string; // This is expected to be a base64 or URL string of the image
 }
 
-export default function Gallery({ userId, onClose }: GalleryProps) {
+export default function Gallery({
+  userId,
+  onClose,
+  setSelectedImageUrl,
+  setSelectedImageName,
+}: GalleryProps) {
   const [galleryImages, setGalleryImages] = useState<ImageData[]>([]);
   const [loading, setLoading] = useState(true);
   const [enlargedImage, setEnlargedImage] = useState<ImageData | null>(null);
 
+  // Fetch images from Firestore when userId changes
   useEffect(() => {
     if (!userId) return;
     fetchImages();
   }, [userId]);
 
+  // Fetch all images in the subcollection "users/{userId}/images"
   const fetchImages = async () => {
     try {
       const imagesCol = collection(db, "users", userId, "images");
       const imagesSnap = await getDocs(imagesCol);
 
+      // Map documents to ImageData array
       const images = imagesSnap.docs.map((doc) => {
         const data = doc.data();
         return {
@@ -46,15 +56,40 @@ export default function Gallery({ userId, onClose }: GalleryProps) {
     }
   };
 
+  // Delete image document from Firestore
   const handleDelete = async (id: string) => {
     const confirm = window.confirm("Delete this image? This cannot be undone.");
     if (!confirm) return;
 
     try {
       await deleteDoc(doc(db, "users", userId, "images", id));
+      // Remove from local state after deletion
       setGalleryImages((prev) => prev.filter((img) => img.id !== id));
     } catch (error) {
       console.error("❌ Error deleting image:", error);
+    }
+  };
+
+  // This function is supposed to save the selected image as the profile picture
+  const handleSetProfile = async (img: ImageData) => {
+    try {
+      // This writes the profile image data inside "users/{userId}/profile/image"
+      // Note: This is a document in a subcollection "profile" under the user
+      const profileDocRef = doc(db, "users", userId, "profile", "image");
+      await setDoc(profileDocRef, {
+        imageName: img.imageName,
+        imageData: img.imageData,
+        updatedAt: new Date().toISOString(),
+      });
+
+      // Immediately update selected image in parent component (App.tsx)
+      setSelectedImageUrl(img.imageData);
+      setSelectedImageName(img.imageName);
+
+      alert("✅ Set as profile picture!");
+    } catch (error) {
+      console.error("❌ Failed to set profile picture:", error);
+      alert("Failed to set profile picture.");
     }
   };
 
@@ -97,9 +132,19 @@ export default function Gallery({ userId, onClose }: GalleryProps) {
               <p style={{ marginTop: "6px", fontWeight: "bold" }}>
                 {img.imageName}
               </p>
-              <div style={{ display: "flex", gap: "8px", marginTop: "6px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "6px",
+                  marginTop: "6px",
+                }}
+              >
                 <button onClick={() => setEnlargedImage(img)}>🔍 Enlarge</button>
                 <button onClick={() => handleDelete(img.id)}>🗑️ Delete</button>
+                <button onClick={() => handleSetProfile(img)}>
+                  👤 Set as Profile
+                </button>
               </div>
             </div>
           ))}

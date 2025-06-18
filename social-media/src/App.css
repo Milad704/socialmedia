@@ -103,7 +103,7 @@ button:hover {
 .camera-screen {
   padding: 20px;
   text-align: center;
-  background-color: #0e0e0e;
+  background-color: #c6ee12;
   min-height: 100vh;
   color: white;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
@@ -194,8 +194,8 @@ button:hover {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   
   /* 👇 Add these lines to highlight the camera screen */
-  border: 5px solid #00d1ff; /* Bright cyan border */
-  outline: 3px solid #ffffff; /* Outer white outline */
+  border: 5px solid #f4f80f; /* Bright cyan border */
+  outline: 0px solid #ffffff; /* Outer white outline */
 }
 
 /* ------------------------- */
