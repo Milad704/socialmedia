@@ -9,6 +9,7 @@ import {
   orderBy,
   addDoc,
   updateDoc,
+  arrayRemove,
 } from "firebase/firestore";
 import { db } from "./firebase";
 
@@ -32,7 +33,6 @@ export default function ChatRoom({
   // Determine chat type and participants
   useEffect(() => {
     (async () => {
-      // Check groupChats top-level
       const groupRef = doc(db, "groupChats", friend);
       const groupSnap = await getDoc(groupRef);
       if (groupSnap.exists()) {
@@ -41,35 +41,52 @@ export default function ChatRoom({
         setGroupName(data.name);
         setParticipants(data.members);
       } else {
-        // 1-on-1
         setIsGroup(false);
         setParticipants([currentUser, friend]);
       }
     })();
   }, [currentUser, friend]);
 
-  // Compute chatId and collection path
+  // Compute chatId
   const chatId = isGroup ? friend : [currentUser, friend].sort().join("_");
-  const messagesCol = isGroup
-    ? collection(db, "groupChats", chatId, "messages")
-    : collection(db, "chats", chatId, "messages");
+
+  // Per-user message collection
+  const userMessagesCol = (user: string) =>
+    collection(
+      db,
+      "users",
+      user,
+      isGroup ? "groupChats" : "chats",
+      chatId,
+      "messages"
+    );
 
   // Load existing messages and subscribe
   useEffect(() => {
-    if (!currentUser || !friend) return;
-    const q = query(messagesCol, orderBy("createdAt"));
-
+    const col = userMessagesCol(currentUser);
+    const q = query(col, orderBy("createdAt"));
     getDocs(q)
       .then((snap) =>
         setMessages(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
       )
       .catch(console.error);
-
     const unsub = onSnapshot(q, (snap) =>
       setMessages(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
     );
     return () => unsub();
-  }, [messagesCol]);
+  }, [currentUser, friend, isGroup]);
+
+  // Leave group chat
+  const leaveGroup = async () => {
+    try {
+      await updateDoc(doc(db, "groupChats", chatId), {
+        members: arrayRemove(currentUser),
+      });
+      onBack();
+    } catch (err) {
+      console.error("❌ Error leaving group:", err);
+    }
+  };
 
   // Send new message
   const sendMessage = async () => {
@@ -77,23 +94,38 @@ export default function ChatRoom({
     if (!text) return;
     const payload = { text, sender: currentUser, createdAt: new Date() };
     try {
-      await addDoc(messagesCol, payload);
+      if (isGroup) {
+        await Promise.all(
+          participants.map((mem) => addDoc(userMessagesCol(mem), payload))
+        );
+      } else {
+        await addDoc(userMessagesCol(currentUser), payload);
+        await addDoc(userMessagesCol(friend), payload);
+      }
       setNewMsg("");
     } catch (err) {
       console.error(err);
     }
   };
 
-  // Delete (mark) message
+  // Delete message only from current user's view
   const deleteMessage = async (id: string) => {
     try {
-      const msgRef = doc(messagesCol.firestore, messagesCol.path, id);
+      const msgRef = doc(
+        db,
+        "users",
+        currentUser,
+        isGroup ? "groupChats" : "chats",
+        chatId,
+        "messages",
+        id
+      );
       await updateDoc(msgRef, {
         text: "This message was deleted.",
         deleted: true,
       });
     } catch (err) {
-      console.error(err);
+      console.error("❌ Error deleting message:", err);
     }
   };
 
@@ -102,8 +134,16 @@ export default function ChatRoom({
       <header>
         <button onClick={onBack}>Back</button>
         <h2>{isGroup ? groupName : friend}</h2>
-        {isGroup && participants.length > 0 && (
-          <p>Participants: {participants.join(", ")}</p>
+        {isGroup && (
+          <>
+            <p>Participants: {participants.join(", ")}</p>
+            <button
+              onClick={leaveGroup}
+              style={{ marginLeft: "1rem", fontSize: "0.8rem" }}
+            >
+              Leave Group
+            </button>
+          </>
         )}
       </header>
       <section className="messages">
@@ -114,21 +154,17 @@ export default function ChatRoom({
               msg.sender === currentUser ? "my-message" : "their-message"
             }
           >
-            {msg.deleted ? (
-              <em>This message was deleted.</em>
-            ) : (
-              <>
-                <strong>{msg.sender}</strong>: {msg.text}
-                {msg.sender === currentUser && (
-                  <button
-                    onClick={() => deleteMessage(msg.id)}
-                    style={{ fontSize: "0.6rem", marginLeft: "4px" }}
-                  >
-                    🗑️
-                  </button>
-                )}
-              </>
-            )}
+            <>
+              <strong>{msg.sender}</strong>: {msg.text}
+              {!msg.deleted && msg.sender === currentUser && (
+                <button
+                  onClick={() => deleteMessage(msg.id)}
+                  style={{ fontSize: "0.6rem", marginLeft: "4px" }}
+                >
+                  🗑️
+                </button>
+              )}
+            </>
           </div>
         ))}
       </section>
