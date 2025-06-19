@@ -48,16 +48,24 @@ export default function App() {
 
   // chat & friends
   const [friends, setFriends] = useState<string[]>([]);
-  const [groupChatsList, setGroupChatsList] = useState<{ id: string; name: string }[]>([]);
-  const [selectedChatFriend, setSelectedChatFriend] = useState<string | null>(null);
+  const [groupChatsList, setGroupChatsList] = useState<
+    { id: string; name: string }[]
+  >([]);
+  const [selectedChatFriend, setSelectedChatFriend] = useState<string | null>(
+    null
+  );
 
   // group‑chat creation
-  const [selectedGroupFriends, setSelectedGroupFriends] = useState<string[]>([]);
+  const [selectedGroupFriends, setSelectedGroupFriends] = useState<string[]>(
+    []
+  );
   const [newGroupName, setNewGroupName] = useState("");
 
   // profile‑pic
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
-  const [selectedImageName, setSelectedImageName] = useState<string | null>(null);
+  const [selectedImageName, setSelectedImageName] = useState<string | null>(
+    null
+  );
 
   const handleLogin = (username: string, _id: number) => {
     setUsername(username);
@@ -107,7 +115,9 @@ export default function App() {
           where("members", "array-contains", username)
         );
         const snap = await getDocs(q);
-        setGroupChatsList(snap.docs.map((d) => ({ id: d.id, name: d.data().name })));
+        setGroupChatsList(
+          snap.docs.map((d) => ({ id: d.id, name: d.data().name }))
+        );
       } catch {
         setGroupChatsList([]);
       }
@@ -122,14 +132,20 @@ export default function App() {
   };
   const toggleGroupFriend = (friend: string) => {
     setSelectedGroupFriends((prev) =>
-      prev.includes(friend) ? prev.filter((f) => f !== friend) : [...prev, friend]
+      prev.includes(friend)
+        ? prev.filter((f) => f !== friend)
+        : [...prev, friend]
     );
   };
   const createGroupChat = async () => {
     const rawName = newGroupName.trim();
     if (!rawName) return alert("Please enter a group chat name.");
-    if (!selectedGroupFriends.length) return alert("Please select at least one friend.");
-    const safeId = rawName.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
+    if (!selectedGroupFriends.length)
+      return alert("Please select at least one friend.");
+    const safeId = rawName
+      .toLowerCase()
+      .replace(/\s+/g, "_")
+      .replace(/[^a-z0-9_]/g, "");
     const members = [username, ...selectedGroupFriends];
     try {
       const ref = doc(db, "groupChats", safeId);
@@ -181,11 +197,21 @@ export default function App() {
             {/* LEFT */}
             <div className="white_strip">
               <div className="sidebar-button-grid">
-                <button onClick={() => setShowAddFriend(true)}>➕ Add Friend</button>
-                <button onClick={() => setShowPendingRequests(true)}>📩 Pending Requests</button>
-                <button onClick={() => setShowNewChat(true)}>💬 New Chat</button>
-                <button onClick={() => setShowMakeGroupChat(true)}>👥 Make Groupchat</button>
-                <button onClick={() => setShowViewGroupChats(true)}>👀 View Group Chats</button>
+                <button onClick={() => setShowAddFriend(true)}>
+                  ➕ Add Friend
+                </button>
+                <button onClick={() => setShowPendingRequests(true)}>
+                  📩 Pending Requests
+                </button>
+                <button onClick={() => setShowNewChat(true)}>
+                  💬 New Chat
+                </button>
+                <button onClick={() => setShowMakeGroupChat(true)}>
+                  👥 Make Groupchat
+                </button>
+                <button onClick={() => setShowViewGroupChats(true)}>
+                  👀 View Group Chats
+                </button>
               </div>
               <div className="friend-list-container">
                 <h4>Your Friends</h4>
@@ -194,8 +220,14 @@ export default function App() {
                 ) : (
                   <ul className="friend-list">
                     {friends.map((f) => (
-                      <li key={f} className="friend-item" onClick={() => setSelectedChatFriend(f)}>
-                        <div className="friend-avatar">{f.slice(0, 2).toUpperCase()}</div>
+                      <li
+                        key={f}
+                        className="friend-item"
+                        onClick={() => setSelectedChatFriend(f)}
+                      >
+                        <div className="friend-avatar">
+                          {f.slice(0, 2).toUpperCase()}
+                        </div>
                         <div className="friend-name">{f}</div>
                       </li>
                     ))}
@@ -207,8 +239,12 @@ export default function App() {
             {/* CENTER */}
             <div className="center_white_strip">
               <div className="buttons">
-                <button onClick={() => setShowCamera(true)}>📸 Open Camera</button>
-                <button onClick={() => setShowGallery(true)}>🖼️ View Pictures</button>
+                <button onClick={() => setShowCamera(true)}>
+                  📸 Open Camera
+                </button>
+                <button onClick={() => setShowGallery(true)}>
+                  🖼️ View Pictures
+                </button>
               </div>
 
               {/* Profile‑pic name & preview */}
@@ -250,11 +286,20 @@ export default function App() {
                     <div style={{ marginTop: 10 }}>
                       <button
                         onClick={async () => {
-                          const profileRef = doc(db, "users", username, "profile", "image");
+                          const profileRef = doc(
+                            db,
+                            "users",
+                            username,
+                            "profile",
+                            "image"
+                          );
                           try {
                             await deleteDoc(profileRef);
                           } catch (e) {
-                            console.error("❌ Failed to remove profile pic:", e);
+                            console.error(
+                              "❌ Failed to remove profile pic:",
+                              e
+                            );
                           }
                         }}
                       >
@@ -269,7 +314,10 @@ export default function App() {
 
           {/* FOOTER MODALS */}
           {showAddFriend && (
-            <AddFriendModal onClose={closeAddFriendModal} currentUser={username} />
+            <AddFriendModal
+              onClose={closeAddFriendModal}
+              currentUser={username}
+            />
           )}
           {showPendingRequests && (
             <PendingRequestsModal
@@ -370,7 +418,9 @@ export default function App() {
                     ))}
                   </ul>
                 )}
-                <button onClick={() => setShowViewGroupChats(false)}>Close</button>
+                <button onClick={() => setShowViewGroupChats(false)}>
+                  Close
+                </button>
               </div>
             </div>
           )}

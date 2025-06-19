@@ -24,54 +24,48 @@ export default function AddFriendModal({
   const [sentRequests, setSentRequests] = useState<string[]>([]);
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      const querySnapshot = await getDocs(collection(db, "users"));
-      const users: string[] = [];
-      let currentUserFriends: string[] = [];
-      let currentUserRequests: string[] = [];
+    const fetchData = async () => {
+      // fetch all users except current
+      const usersSnap = await getDocs(collection(db, "users"));
+      const usersList: string[] = [];
+      let currentFriends: string[] = [];
+      let sent: string[] = [];
 
-      querySnapshot.forEach((docSnap) => {
-        const username = docSnap.id;
-        const data = docSnap.data();
-        if (username === currentUser) {
-          currentUserFriends = data.friends || [];
+      usersSnap.forEach((snap) => {
+        const id = snap.id;
+        const data = snap.data() as any;
+        if (id === currentUser) {
+          currentFriends = data.friends || [];
+          sent = data.sentRequests || [];
         } else {
-          users.push(username);
+          usersList.push(id);
         }
       });
 
-      // Get sent requests (people who already received your request)
-      const myDoc = await getDoc(doc(db, "users", currentUser));
-      if (myDoc.exists()) {
-        const myData = myDoc.data();
-        const mySent = myData?.sentRequests || []; // optional: if you store it this way
-        setSentRequests(mySent);
-      }
-
-      setAllUsers(users);
-      setFriends(currentUserFriends);
+      setAllUsers(usersList);
+      setFriends(currentFriends);
+      setSentRequests(sent);
     };
-
-    fetchUsers();
+    fetchData();
   }, [currentUser]);
 
   const handleSendRequest = async (recipient: string) => {
-    const recipientRef = doc(db, "users", recipient);
+    // prevent duplicate
+    if (sentRequests.includes(recipient)) return;
 
-    await updateDoc(recipientRef, {
+    // update recipient requests
+    await updateDoc(doc(db, "users", recipient), {
       requests: arrayUnion(currentUser),
     });
-
-    // Optional: if you want to store "sentRequests" in the sender’s doc:
-    // await updateDoc(doc(db, "users", currentUser), {
-    //   sentRequests: arrayUnion(recipient),
-    // });
+    // update sender sentRequests
+    await updateDoc(doc(db, "users", currentUser), {
+      sentRequests: arrayUnion(recipient),
+    });
 
     setSentRequests((prev) => [...prev, recipient]);
-    alert(`Friend request sent to ${recipient}`);
   };
 
-  const filteredUsers = allUsers.filter(
+  const filtered = allUsers.filter(
     (u) =>
       u.toLowerCase().includes(searchQuery.toLowerCase()) &&
       !friends.includes(u)
@@ -94,19 +88,18 @@ export default function AddFriendModal({
           }}
         />
         <ul style={{ listStyle: "none", padding: 0 }}>
-          {filteredUsers.length === 0 ? (
+          {filtered.length === 0 ? (
             <p>No matching users found.</p>
           ) : (
-            filteredUsers.map((user) => (
+            filtered.map((user) => (
               <li key={user} style={{ marginBottom: "10px" }}>
                 {user}{" "}
-                {sentRequests.includes(user) ? (
-                  <button disabled>✅ Sent</button>
-                ) : (
-                  <button onClick={() => handleSendRequest(user)}>
-                    ➕ Add
-                  </button>
-                )}
+                <button
+                  onClick={() => handleSendRequest(user)}
+                  disabled={sentRequests.includes(user)}
+                >
+                  {sentRequests.includes(user) ? "✅ Sent" : "➕ Add"}
+                </button>
               </li>
             ))
           )}

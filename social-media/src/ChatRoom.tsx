@@ -2,11 +2,13 @@ import React, { useState, useEffect } from "react";
 import {
   doc,
   getDoc,
+  getDocs,
   onSnapshot,
   collection,
   query,
   orderBy,
   addDoc,
+  updateDoc,
 } from "firebase/firestore";
 import { db } from "./firebase";
 
@@ -23,81 +25,87 @@ export default function ChatRoom({
 }: ChatRoomProps) {
   const [messages, setMessages] = useState<any[]>([]);
   const [newMsg, setNewMsg] = useState("");
-
   const [isGroup, setIsGroup] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [participants, setParticipants] = useState<string[]>([]);
 
-  // Load group metadata if group
+  // Determine chat type and participants
   useEffect(() => {
-    const checkGroup = async () => {
-      const chatMetaRef = doc(db, "users", currentUser, "chats", friend);
-      const snap = await getDoc(chatMetaRef);
-      const data = snap.data();
-      if (snap.exists() && data?.isGroup) {
+    (async () => {
+      // Check groupChats top-level
+      const groupRef = doc(db, "groupChats", friend);
+      const groupSnap = await getDoc(groupRef);
+      if (groupSnap.exists()) {
+        const data = groupSnap.data();
         setIsGroup(true);
-        setGroupName(data.name || "Unnamed Group");
-        setParticipants(data.members || []);
+        setGroupName(data.name);
+        setParticipants(data.members);
       } else {
+        // 1-on-1
         setIsGroup(false);
-        setGroupName("");
-        setParticipants([]);
+        setParticipants([currentUser, friend]);
       }
-    };
-    checkGroup();
+    })();
   }, [currentUser, friend]);
 
-  // Subscribe to messages under currentUser's doc
+  // Compute chatId and collection path
+  const chatId = isGroup ? friend : [currentUser, friend].sort().join("_");
+  const messagesCol = isGroup
+    ? collection(db, "groupChats", chatId, "messages")
+    : collection(db, "chats", chatId, "messages");
+
+  // Load existing messages and subscribe
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser || !friend) return;
+    const q = query(messagesCol, orderBy("createdAt"));
 
-    // Build collection path based on isGroup
-    const messagesCollection = isGroup
-      ? collection(db, "users", currentUser, "groupChats", friend, "messages")
-      : collection(db, "users", currentUser, "chats", friend, "messages");
+    getDocs(q)
+      .then((snap) =>
+        setMessages(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+      )
+      .catch(console.error);
 
-    const q = query(messagesCollection, orderBy("createdAt"));
+    const unsub = onSnapshot(q, (snap) =>
+      setMessages(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+    );
+    return () => unsub();
+  }, [messagesCol]);
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setMessages(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
-    });
-
-    return () => unsubscribe();
-  }, [currentUser, friend, isGroup]);
-
-  // Send message saved under currentUser's doc
+  // Send new message
   const sendMessage = async () => {
     const text = newMsg.trim();
     if (!text) return;
-
-    const messagesCollection = isGroup
-      ? collection(db, "users", currentUser, "groupChats", friend, "messages")
-      : collection(db, "users", currentUser, "chats", friend, "messages");
-
+    const payload = { text, sender: currentUser, createdAt: new Date() };
     try {
-      await addDoc(messagesCollection, {
-        text,
-        sender: currentUser,
-        createdAt: new Date(),
-      });
+      await addDoc(messagesCol, payload);
       setNewMsg("");
     } catch (err) {
-      console.error("❌ Error sending message:", err);
+      console.error(err);
+    }
+  };
+
+  // Delete (mark) message
+  const deleteMessage = async (id: string) => {
+    try {
+      const msgRef = doc(messagesCol.firestore, messagesCol.path, id);
+      await updateDoc(msgRef, {
+        text: "This message was deleted.",
+        deleted: true,
+      });
+    } catch (err) {
+      console.error(err);
     }
   };
 
   return (
     <main className="chat-room">
       <header>
-        <button onClick={onBack}>◀️ Back</button>
+        <button onClick={onBack}>Back</button>
         <h2>{isGroup ? groupName : friend}</h2>
         {isGroup && participants.length > 0 && (
-          <p className="chat-participants">
-            Participants: {participants.join(", ")}
-          </p>
+          <p>Participants: {participants.join(", ")}</p>
         )}
       </header>
-
       <section className="messages">
         {messages.map((msg) => (
           <div
@@ -106,11 +114,24 @@ export default function ChatRoom({
               msg.sender === currentUser ? "my-message" : "their-message"
             }
           >
-            <strong>{msg.sender}</strong>: <span>{msg.text}</span>
+            {msg.deleted ? (
+              <em>This message was deleted.</em>
+            ) : (
+              <>
+                <strong>{msg.sender}</strong>: {msg.text}
+                {msg.sender === currentUser && (
+                  <button
+                    onClick={() => deleteMessage(msg.id)}
+                    style={{ fontSize: "0.6rem", marginLeft: "4px" }}
+                  >
+                    🗑️
+                  </button>
+                )}
+              </>
+            )}
           </div>
         ))}
       </section>
-
       <div className="chat-input">
         <input
           value={newMsg}
