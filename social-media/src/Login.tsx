@@ -1,48 +1,35 @@
 import React, { useState, useEffect, FormEvent, ChangeEvent } from "react";
 import { doc, getDoc, setDoc, getDocs, collection } from "firebase/firestore";
-import { db } from "./firebase"; // ✅ Ensure correct path to your firebase.ts
+import { db } from "./firebase";
 
-// Pass both username and ID to parent
+// Define the props for the Login component
 interface LoginProps {
+  // Callback invoked after successful login or signup
   onLogin: (username: string, id: number) => void;
 }
 
 export default function Login({ onLogin }: LoginProps) {
-  const [username, setUsername] = useState("");
-  const [isSignup, setIsSignup] = useState(false);
-  const [error, setError] = useState("");
-  const [allUsers, setAllUsers] = useState<string[]>([]); // ✅ Store fetched usernames
+  // Local state for form inputs and control flags
+  const [username, setUsername] = useState<string>(""); // stores the entered username
+  const [password, setPassword] = useState<string>(""); // stores the entered password
+  const [confirmPassword, setConfirmPassword] = useState<string>(""); // stores confirmation when signing up
+  const [isSignup, setIsSignup] = useState<boolean>(false); // toggles between login and signup modes
+  const [error, setError] = useState<string>(""); // holds any validation or Firebase errors
 
-  // ✅ Fetch all usernames on load
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const snapshot = await getDocs(collection(db, "users"));
-        const names: string[] = [];
-
-        snapshot.forEach((doc) => {
-          names.push(doc.id); // usernames are stored as document IDs
-        });
-
-        setAllUsers(names);
-      } catch (err) {
-        console.error("⚠️ Failed to fetch users:", err);
-      }
-    };
-
-    fetchUsers();
-  }, []);
-
+  /**
+   * Generates a unique 6-digit ID not already in the users collection
+   */
   const generateUniqueId = async (): Promise<number> => {
+    // Fetch all user documents
     const usersSnapshot = await getDocs(collection(db, "users"));
     const existingIds = new Set<number>();
-
     usersSnapshot.forEach((doc) => {
-      const data = doc.data();
+      const data = doc.data() as any;
       if (data.id) existingIds.add(data.id);
     });
 
-    let newId = 0;
+    let newId: number;
+    // Keep generating until an unused ID is found
     do {
       newId = Math.floor(100000 + Math.random() * 900000);
     } while (existingIds.has(newId));
@@ -50,58 +37,66 @@ export default function Login({ onLogin }: LoginProps) {
     return newId;
   };
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const trimmed = username.trim();
+  /**
+   * Handles form submission for both login and signup
+   */
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault(); // Prevent default form reload
+    setError(""); // Clear any previous errors
 
-    if (trimmed === "") {
-      setError("Username cannot be empty.");
-      return;
-    }
+    const trimmed = username.trim(); // Remove whitespace
+    if (!trimmed) return setError("Username cannot be empty.");
+    if (!password) return setError("Password cannot be empty.");
 
-    try {
-      const userRef = doc(db, "users", trimmed);
-      const userSnap = await getDoc(userRef);
+    // Reference to the user document by username
+    const userRef = doc(db, "users", trimmed);
+    const userSnap = await getDoc(userRef);
 
-      if (isSignup) {
-        if (userSnap.exists()) {
-          setError("Username already taken.");
-        } else {
-          const newId = await generateUniqueId();
-          await setDoc(userRef, {
-            createdAt: new Date(),
-            id: newId,
-          });
-          onLogin(trimmed, newId);
-        }
-      } else {
-        if (userSnap.exists()) {
-          const userData = userSnap.data();
-          onLogin(trimmed, userData.id);
-        } else {
-          setError("Incorrect username.");
-        }
+    if (isSignup) {
+      // SIGN UP flow
+      if (userSnap.exists()) {
+        // Prevent duplicate usernames
+        setError("Username already taken.");
+        return;
       }
-    } catch (err) {
-      console.error("❌ Unexpected error during login/signup:", err);
-      setError("Something went wrong. Try again.");
+      if (password !== confirmPassword) {
+        // Ensure password confirmation matches
+        setError("Passwords do not match.");
+        return;
+      }
+      // Generate a new unique ID and create the user document
+      const newId = await generateUniqueId();
+      await setDoc(userRef, {
+        id: newId,
+        password,
+        createdAt: new Date(),
+      });
+      // Invoke parent callback with new credentials
+      onLogin(trimmed, newId);
+    } else {
+      // LOGIN flow
+      if (!userSnap.exists()) {
+        // Username not found
+        setError("Incorrect username or password.");
+        return;
+      }
+      const data = userSnap.data() as any;
+      if (data.password !== password) {
+        // Password mismatch
+        setError("Incorrect username or password.");
+        return;
+      }
+      // Successful login: call parent callback
+      onLogin(trimmed, data.id);
     }
-  };
-
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setUsername(e.target.value);
   };
 
   return (
     <main className="login-screen">
-      <h1>
-        Welcome to SnapClone 📸
-        <br />
-        <span style={{ fontSize: "14px", color: "#888" }}>
-          Users: {allUsers.join(", ") || "loading..."}
-        </span>
-      </h1>
+      {/* App title */}
+      <h1>Welcome to SnapClone 📸</h1>
 
+      {/* Toggle between Log In and Sign Up */}
       <div className="toggle-buttons">
         <button
           onClick={() => {
@@ -123,25 +118,43 @@ export default function Login({ onLogin }: LoginProps) {
         </button>
       </div>
 
+      {/* Authentication form */}
       <form onSubmit={handleSubmit}>
         <input
           type="text"
-          placeholder={
-            isSignup ? "Choose a username..." : "Enter your username..."
-          }
+          placeholder={isSignup ? "Choose a username..." : "Username..."}
           value={username}
-          onChange={handleChange}
+          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+            setUsername(e.target.value)
+          }
         />
+
+        <input
+          type="password"
+          placeholder="Password..."
+          value={password}
+          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+            setPassword(e.target.value)
+          }
+        />
+
+        {/* Show confirm password only in signup mode */}
+        {isSignup && (
+          <input
+            type="password"
+            placeholder="Confirm password..."
+            value={confirmPassword}
+            onChange={(e: ChangeEvent<HTMLInputElement>) =>
+              setConfirmPassword(e.target.value)
+            }
+          />
+        )}
+
         <button type="submit">{isSignup ? "Create Account" : "Log In"}</button>
       </form>
 
+      {/* Display any error messages */}
       {error && <p className="error-message">{error}</p>}
-
-      <p className="login-note">
-        {isSignup
-          ? "Already have an account? Click Log In above."
-          : "New here? Click Sign Up above."}
-      </p>
     </main>
   );
 }
