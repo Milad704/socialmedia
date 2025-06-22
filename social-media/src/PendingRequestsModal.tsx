@@ -2,67 +2,52 @@ import React, { useEffect, useState } from "react";
 import { doc, getDoc, updateDoc, arrayRemove } from "firebase/firestore";
 import { db } from "./firebase";
 
-interface PendingRequestsModalProps {
-  onClose: () => void;
-  currentUser: string;
-  addFriendToUsers: (userA: string, userB: string) => Promise<void>;
+interface Props {
+  onClose(): void;                               // Close the modal
+  currentUser: string;                           // Logged-in user
+  addFriendToUsers(a: string, b: string): Promise<void>; // Friend-add helper
 }
 
 export default function PendingRequestsModal({
   onClose,
   currentUser,
   addFriendToUsers,
-}: PendingRequestsModalProps) {
-  const [requests, setRequests] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+}: Props) {
+  // `requests === null` → still loading; `[]` → loaded with zero entries
+  const [requests, setRequests] = useState<string[] | null>(null);
+  const [error, setError]     = useState<string>(); // Store any fetch error
 
+  // Fetch pending requests once when `currentUser` changes
   useEffect(() => {
-    const fetchRequests = async () => {
-      try {
-        const userDoc = await getDoc(doc(db, "users", currentUser));
-        if (userDoc.exists()) {
-          const data = userDoc.data();
-          setRequests(data.requests || []);
-        } else {
-          setRequests([]);
-        }
-        setLoading(false);
-      } catch (err: any) {
-        setError("Failed to load requests: " + err.message);
-        setLoading(false);
-      }
-    };
-
-    fetchRequests();
+    getDoc(doc(db, "users", currentUser))
+      .then(snap => 
+        setRequests(
+          snap.exists() 
+            ? snap.data().requests || []  // get array or fallback
+            : []
+        )
+      )
+      .catch(err => {
+        setError(err.message); // show error message
+        setRequests([]);       // stop loading
+      });
   }, [currentUser]);
 
-  const acceptRequest = async (fromUser: string) => {
+  // Handles both accept (accept=true) and reject (accept=false)
+  const handle = async (user: string, accept = false) => {
     try {
-      await addFriendToUsers(currentUser, fromUser);
-
-      // Remove request from Firestore
-      const userRef = doc(db, "users", currentUser);
-      await updateDoc(userRef, {
-        requests: arrayRemove(fromUser),
+      if (accept) {
+        // add each other as friends
+        await addFriendToUsers(currentUser, user);
+      }
+      // remove from pending in Firestore
+      await updateDoc(doc(db, "users", currentUser), {
+        requests: arrayRemove(user),
       });
-
-      setRequests((prev) => prev.filter((r) => r !== fromUser));
+      // update UI list
+      setRequests(prev => prev?.filter(u => u !== user) ?? []);
     } catch (err: any) {
-      alert("Error accepting request: " + err.message);
-    }
-  };
-
-  const rejectRequest = async (fromUser: string) => {
-    try {
-      const userRef = doc(db, "users", currentUser);
-      await updateDoc(userRef, {
-        requests: arrayRemove(fromUser),
-      });
-
-      setRequests((prev) => prev.filter((r) => r !== fromUser));
-    } catch (err: any) {
-      alert("Error rejecting request: " + err.message);
+      alert(`${accept ? "Accept" : "Reject"} error: ${err.message}`);
     }
   };
 
@@ -70,26 +55,30 @@ export default function PendingRequestsModal({
     <div className="modal-overlay">
       <div className="modal-content">
         <h3>Pending Friend Requests</h3>
+
+        {/* Error banner */}
         {error && <p style={{ color: "red" }}>{error}</p>}
-        {loading ? (
+
+        {/* Loading / empty / list states */}
+        {requests === null ? (
           <p>Loading...</p>
         ) : requests.length === 0 ? (
           <p>No pending requests.</p>
         ) : (
           <ul>
-            {requests.map((username) => (
-              <li key={username} style={{ marginBottom: "10px" }}>
-                {username} wants to be your friend{" "}
-                <button onClick={() => acceptRequest(username)}>
-                  ✅ Accept
-                </button>{" "}
-                <button onClick={() => rejectRequest(username)}>
-                  ❌ Reject
-                </button>
+            {requests.map(u => (
+              <li key={u} style={{ marginBottom: 10 }}>
+                {u} wants to be your friend&nbsp;
+                {/* accept */}
+                <button onClick={() => handle(u, true)}>✅</button>
+                {/* reject */}
+                <button onClick={() => handle(u)}>❌</button>
               </li>
             ))}
           </ul>
         )}
+
+        {/* close modal */}
         <button onClick={onClose}>Close</button>
       </div>
     </div>
