@@ -3,8 +3,8 @@ import { doc, getDoc, updateDoc, arrayRemove } from "firebase/firestore";
 import { db } from "./firebase";
 
 interface Props {
-  onClose(): void;                               // Close the modal
-  currentUser: string;                           // Logged-in user
+  onClose(): void; 
+  currentUser: string; 
   addFriendToUsers(a: string, b: string): Promise<void>; // Friend-add helper
 }
 

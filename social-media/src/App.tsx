@@ -4,6 +4,7 @@ import {
   collection, query, where, getDocs, onSnapshot
 } from "firebase/firestore";
 import { db } from "./firebase";
+
 import Login from "./Login";
 import Camera from "./Camera";
 import Gallery from "./Gallery";
@@ -26,7 +27,6 @@ const addFriendToUsers = async (a: string, b: string) => {
 };
 
 export default function App() {
-  // — state —————————————————————————————————————————
   const [loggedIn, setLoggedIn] = useState(false);
   const [username, setUsername] = useState("");
   const [friends, setFriends] = useState<string[]>([]);
@@ -44,13 +44,13 @@ export default function App() {
   const [imgUrl, setImgUrl] = useState<string | null>(null);
   const [imgName, setImgName] = useState<string | null>(null);
 
-  // — login callback —————————————————————————————
+  // login callback to tell user is logged in
   const handleLogin = (u: string) => {
     setUsername(u);
     setLoggedIn(true);
   };
 
-  // — realtime profile pic ————————————————————————
+  //  realtime profile pic 
   useEffect(() => {
     if (!username) return;
     const ref = doc(db, "users", username, "profile", "image");
@@ -61,7 +61,7 @@ export default function App() {
     }, err => console.error(err));
   }, [username]);
 
-  // — load friends list ——————————————————————————
+  // load friends list 
   useEffect(() => {
     if (!username) return;
     getDoc(doc(db, "users", username))
@@ -69,7 +69,7 @@ export default function App() {
       .catch(() => setFriends([]));
   }, [username]);
 
-  // — load group chats when modal opens —————————————————
+  // load group chats when modal opens
   useEffect(() => {
     if (!showViewGroups || !username) return;
     const q = query(collection(db, "groupChats"),
@@ -79,16 +79,16 @@ export default function App() {
       .then(snap => setGroupChatsList(
         snap.docs.map(d => ({ id: d.id, name: d.data().name }))
       ))
-      .catch(() => setGroupChatsList([]));
+      .catch(() => setGroupChatsList([])); //store it here
   }, [showViewGroups, username]);
 
-  // — toggle friend in group selection —————————————
+  //  toggle friend in group selection when clicked on
   const toggleGroupFriend = (f: string) =>
     setGroupSelection(prev =>
       prev.includes(f) ? prev.filter(x => x !== f) : [...prev, f]
     );
 
-  // — create new group chat —————————————————————————
+  // create new group chat 
   const createGroupChat = async () => {
     const name = newGroupName.trim();
     if (!name) return alert("Enter a name.");
@@ -104,10 +104,10 @@ export default function App() {
     }
     setNewGroupName(""); setGroupSelection([]); setShowMakeGroup(false);
   };
-
-  // — conditional screens —————————————————————————
+  
+  //  screens that get open by clicking on them
   if (!loggedIn)      return <Login onLogin={handleLogin} />;
-  if (selectedFriend) return <ChatRoom currentUser={username} friend={selectedFriend} onBack={() => setSelectedFriend(null)} />;
+  if (selectedFriend) return <ChatRoom currentUser={username} friend={selectedFriend} onBack={() => setSelectedFriend(null)} />; //renders 1-1 chatroom
   if (showCamera)     return <Camera onClose={() => setShowCamera(false)} userId={username} />;
   if (showGallery)    return (
     <Gallery

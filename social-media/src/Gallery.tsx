@@ -3,7 +3,7 @@ import { collection, getDocs, deleteDoc, doc, setDoc } from "firebase/firestore"
 import { db } from "./firebase";
 
 interface GalleryProps {
-  userId: string;                                     // current user’s ID
+  userId: string;                                     
   onClose(): void;                                    // callback to exit gallery
   setSelectedImageUrl: Dispatch<SetStateAction<string | null>>;   // update parent’s profile URL
   setSelectedImageName: Dispatch<SetStateAction<string | null>>;  // update parent’s profile name

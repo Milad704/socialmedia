@@ -13,7 +13,7 @@ interface Props {
 }
 
 export default function ChatRoom({ currentUser, friend, onBack }: Props) {
-  // ─── state ─────────────────────────────────────────
+  
   const [msgs, setMsgs] = useState<any[]>([]);      // list of messages
   const [newMsg, setNewMsg] = useState("");         // input text
   const [isGroup, setIsGroup] = useState(false);    // chat type flag
@@ -22,7 +22,7 @@ export default function ChatRoom({ currentUser, friend, onBack }: Props) {
     members: [],
   });
 
-  // ─── detect group vs 1:1 and load participants ─────
+  // detect group vs 1:1 and load participants 
   useEffect(() => {
     (async () => {
       const gDoc = await getDoc(doc(db, "groupChats", friend));
