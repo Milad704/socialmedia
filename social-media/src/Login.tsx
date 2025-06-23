@@ -1,6 +1,13 @@
 // Importing necessary React hooks and Firestore functions
 import React, { useState, useEffect, FormEvent } from "react";
-import { doc, getDoc, setDoc, updateDoc, getDocs, collection } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  getDocs,
+  collection,
+} from "firebase/firestore";
 import { db } from "./firebase"; // Firebase config
 
 // Props type for Login component
@@ -11,25 +18,21 @@ interface LoginProps {
 // Main login component
 export default function Login({ onLogin }: LoginProps) {
   // Input fields and UI state
-  const [username, setUsername] = useState(""), [password, setPassword] = useState("");
-  const [isSignup, setIsSignup] = useState(false), [error, setError] = useState("");
-
-
-  // Fetch all existing usernames on initial load
-  useEffect(() => {
-    getDocs(collection(db, "users"))
-      .catch(err => console.error("⚠️ Fetch error:", err));
-  }, []);
+  const [username, setUsername] = useState(""),
+    [password, setPassword] = useState("");
+  const [isSignup, setIsSignup] = useState(false),
+    [error, setError] = useState("");
 
   // Generate a unique 6-digit ID not already used by any user
   const generateId = async (): Promise<number> => {
     const used = new Set<number>();
-    (await getDocs(collection(db, "users"))).forEach(doc => {
+    (await getDocs(collection(db, "users"))).forEach((doc) => {
       const d = doc.data();
       if (d.id) used.add(d.id); // Add each existing ID to the set
     });
     let id = 0;
-    do id = Math.floor(100000 + Math.random() * 900000); // Random 6-digit number
+    do
+      id = Math.floor(100000 + Math.random() * 900000); // Random 6-digit number
     while (used.has(id)); // Repeat until unique
     return id;
   };
@@ -37,10 +40,13 @@ export default function Login({ onLogin }: LoginProps) {
   // Handle login or signup form submit
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault(); // Prevent page reload
-    const name = username.trim(), pass = password.trim();
-    if (!name || !pass) return setError("Username and password cannot be empty.");
+    const name = username.trim(),
+      pass = password.trim();
+    if (!name || !pass)
+      return setError("Username and password cannot be empty.");
 
-    const ref = doc(db, "users", name), snap = await getDoc(ref);
+    const ref = doc(db, "users", name),
+      snap = await getDoc(ref);
     const data = snap.data();
 
     if (isSignup) {
@@ -60,7 +66,8 @@ export default function Login({ onLogin }: LoginProps) {
     const name = username.trim();
     if (!name) return setError("Enter your username first."); // 🔴 Key check for username
 
-    const ref = doc(db, "users", name), snap = await getDoc(ref);
+    const ref = doc(db, "users", name),
+      snap = await getDoc(ref);
     if (!snap.exists()) return setError("User not found.");
 
     const current = prompt("Enter your current password:");
@@ -68,8 +75,7 @@ export default function Login({ onLogin }: LoginProps) {
       return alert("❌ Incorrect current password.");
 
     const next = prompt("Enter your new password:");
-    if (!next || next.trim().length < 3)
-      return alert("❌ Password too short.");
+    if (!next || next.trim().length < 3) return alert("❌ Password too short.");
 
     try {
       await updateDoc(ref, { password: next.trim() }); // Update password in Firestore
@@ -82,9 +88,10 @@ export default function Login({ onLogin }: LoginProps) {
   return (
     <main className="login-screen">
       {/* Heading & username preview */}
-      <h1>Welcome to SnapClone 📸<br />
-        <span style={{ fontSize: 14, color: "#888" }}>
-        </span>
+      <h1>
+        Welcome to SnapClone 📸
+        <br />
+        <span style={{ fontSize: 14, color: "#888" }}></span>
       </h1>
 
       {/* Log In / Sign Up toggle buttons */}
@@ -92,7 +99,10 @@ export default function Login({ onLogin }: LoginProps) {
         {["Log In", "Sign Up"].map((label, i) => (
           <button
             key={label}
-            onClick={() => { setIsSignup(!!i); setError(""); }}
+            onClick={() => {
+              setIsSignup(!!i);
+              setError("");
+            }}
             className={isSignup === !!i ? "active" : ""}
           >
             {label}
@@ -104,13 +114,17 @@ export default function Login({ onLogin }: LoginProps) {
       <form onSubmit={handleSubmit}>
         <input
           type="text"
-          placeholder={isSignup ? "Choose a username..." : "Enter your username..."}
+          placeholder={
+            isSignup ? "Choose a username..." : "Enter your username..."
+          }
           value={username}
           onChange={(e) => setUsername(e.target.value)}
         />
         <input
           type="password"
-          placeholder={isSignup ? "Choose a password..." : "Enter your password..."}
+          placeholder={
+            isSignup ? "Choose a password..." : "Enter your password..."
+          }
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
