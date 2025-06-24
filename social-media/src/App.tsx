@@ -1,36 +1,38 @@
-// Import React and necessary Firestore functions
+// Import React and hooks for state & side effects
 import React, { useState, useEffect } from "react";
+// Firestore functions for reading, writing, querying, and real-time updates
 import {
-  doc,            // get a reference to a document
-  getDoc,         // fetch a single document
-  setDoc,         // create or overwrite a document
-  deleteDoc,      // remove a document
-  updateDoc,      // update specific fields in a document
-  arrayUnion,     // Firestore helper to add to array fields
-  collection,     // get a reference to a collection
-  query,          // construct Firestore queries
-  where,          // query filter clauses
-  getDocs,        // fetch multiple documents
-  onSnapshot      // real-time listener
+  doc,           // reference a document by path
+  getDoc,        // read a single document once
+  setDoc,        // create or overwrite a document
+  deleteDoc,     // delete a document
+  updateDoc,     // update specific fields of a document
+  arrayUnion,    // helper to append items to array fields
+  collection,    // reference a collection by path
+  query,         // build a query against a collection
+  where,         // filter criteria for queries
+  getDocs,       // read multiple documents once
+  onSnapshot     // subscribe to real-time updates
 } from "firebase/firestore";
-import { db } from "./firebase"; // initialized Firestore instance
+import { db } from "./firebase"; // your initialized Firestore instance
 
-// Import child components for different app screens
-import Login from "./Login";
-import Camera from "./Camera";
-import Gallery from "./Gallery";
-import ChatRoom from "./ChatRoom";
-import AddFriendModal from "./AddFriendModal";
-import PendingRequestsModal from "./PendingRequestsModal";
-import "./App.css"; // global styles
+// Child components for different app screens & modals
+type Props = { onLogin: (u: string) => void };
+import Login from "./Login";                // login screen
+import Camera from "./Camera";              // camera capture screen
+import Gallery from "./Gallery";            // gallery browser screen
+import ChatRoom from "./ChatRoom";          // chat interface screen
+import AddFriendModal from "./AddFriendModal";        // modal to send friend requests
+import PendingRequestsModal from "./PendingRequestsModal"; // modal to accept/decline
+import "./App.css";                           // global styles
 
-// Helper: add two users to each other's friends arrays in Firestore
+// HELPER: add each user to the other's `friends` array
 const addFriendToUsers = async (a: string, b: string) => {
   try {
-    // Run both updates in parallel
+    // update both user docs in parallel for efficiency
     await Promise.all([
       updateDoc(doc(db, "users", a), { friends: arrayUnion(b) }),
-      updateDoc(doc(db, "users", b), { friends: arrayUnion(a) }),
+      updateDoc(doc(db, "users", b), { friends: arrayUnion(a) })
     ]);
     console.log("✅ Friends added");
   } catch (err) {
@@ -38,98 +40,97 @@ const addFriendToUsers = async (a: string, b: string) => {
   }
 };
 
-// Main application component
 export default function App() {
-  // --- Local state hooks ---
-  const [loggedIn, setLoggedIn] = useState(false);                         // login status
-  const [username, setUsername] = useState("");                          // current user ID
-  const [friends, setFriends] = useState<string[]>([]);                    // list of user’s friends
-  const [groupChatsList, setGroupChatsList] = useState<{ id: string; name: string }[]>([]);
-  const [selectedFriend, setSelectedFriend] = useState<string | null>(null); // which chat/group is open
+  // --- AUTH & NAVIGATION STATE ---
+  const [loggedIn, setLoggedIn]               = useState(false);                // is user logged in?
+  const [username, setUsername]               = useState("");                 // current user's ID (string)
+  const [selectedFriend, setSelectedFriend]   = useState<string | null>(null); // active 1-on-1 or group chat ID
 
-  // Booleans to toggle different modals/screens
-  const [showCamera, setShowCamera] = useState(false);
-  const [showGallery, setShowGallery] = useState(false);
-  const [showAddFriend, setShowAddFriend] = useState(false);
-  const [showPending, setShowPending] = useState(false);
-  const [showNewChat, setShowNewChat] = useState(false);
-  const [showMakeGroup, setShowMakeGroup] = useState(false);
-  const [showViewGroups, setShowViewGroups] = useState(false);
+  // --- DATA LISTS FROM FIRESTORE ---
+  const [friends,       setFriends]           = useState<string[]>([]);        // array of friend usernames
+  const [groupChatsList,setGroupChatsList]    = useState<{id:string;name:string}[]>([]);
 
-  // Group-creation form state
-  const [groupSelection, setGroupSelection] = useState<string[]>([]); // which friends are checked
-  const [newGroupName, setNewGroupName] = useState("");                // group name input
+  // --- UI TOGGLES FOR SCREENS & MODALS ---
+  const [showCamera,     setShowCamera]     = useState(false); // camera screen
+  const [showGallery,    setShowGallery]    = useState(false); // gallery screen
+  const [showAddFriend,  setShowAddFriend]  = useState(false); // add-friend modal
+  const [showPending,    setShowPending]    = useState(false); // pending requests modal
+  const [showNewChat,    setShowNewChat]    = useState(false); // new chat modal
+  const [showMakeGroup,  setShowMakeGroup]  = useState(false); // create group modal
+  const [showViewGroups, setShowViewGroups] = useState(false); // view groups modal
 
-  // Profile picture state
-  const [imgUrl, setImgUrl] = useState<string | null>(null);
-  const [imgName, setImgName] = useState<string | null>(null);
+  // --- FORM STATE FOR GROUP CREATION ---
+  const [newGroupName,  setNewGroupName]    = useState("");       // group name input
+  const [groupSelection,setGroupSelection]  = useState<string[]>([]); // selected friend IDs
 
-  // --- Event handlers ---
-  // Called by Login component when user logs in successfully
+  // --- PROFILE PICTURE STATE ---
+  const [imgUrl,  setImgUrl]               = useState<string|null>(null); // image data URL
+  const [imgName, setImgName]              = useState<string|null>(null); // image filename or label
+
+  // --- LOGIN HANDLER ---
   const handleLogin = (u: string) => {
-    setUsername(u);
-    setLoggedIn(true);
+    setUsername(u);   // store the username
+    setLoggedIn(true); // switch to main UI
   };
 
-  // --- Real-time listener: fetch profile pic when username changes ---
+  // --- REAL-TIME PROFILE PIC LISTENER ---
   useEffect(() => {
-    if (!username) return;
+    if (!username) return; // skip until user logs in
     const ref = doc(db, "users", username, "profile", "image");
-    // Subscribe to changes in the image document
+    // subscribe to changes in the 'profile/image' document
     return onSnapshot(
       ref,
       snap => {
         const data = snap.data() || {};
-        setImgUrl(data.imageData || null);
-        setImgName(data.imageName || null);
+        setImgUrl(data.imageData || null); // update image URL
+        setImgName(data.imageName || null); // update image label
       },
       err => console.error(err)
     );
   }, [username]);
 
-  // --- Fetch friends list once after login ---
+  // --- LOAD FRIENDS LIST ONCE ---
   useEffect(() => {
     if (!username) return;
     getDoc(doc(db, "users", username))
-      .then(snap => setFriends(snap.data()?.friends || []))
+      .then(snap => setFriends(snap.data()?.friends || [])) // default to [] if missing
       .catch(() => setFriends([]));
   }, [username]);
 
-  // --- Load group chats when viewing groups modal opens ---
+  // --- LOAD GROUP CHATS WHEN VIEW GROUPS MODAL OPENS ---
   useEffect(() => {
     if (!showViewGroups || !username) return;
     const q = query(
       collection(db, "groupChats"),
-      where("members", "array-contains", username)
+      where("members", "array-contains", username) // only groups containing this user
     );
     getDocs(q)
-      .then(snap =>
-        setGroupChatsList(
-          snap.docs.map(d => ({ id: d.id, name: d.data().name }))
-        )
-      )
+      .then(snap => setGroupChatsList(
+        snap.docs.map(d => ({ id: d.id, name: d.data().name }))
+      ))
       .catch(() => setGroupChatsList([]));
   }, [showViewGroups, username]);
 
-  // Toggle a friend’s inclusion when building a new group
-  const toggleGroupFriend = (friendId: string) =>
+  // --- GROUP CREATION HELPERS ---
+  // toggle friend selection in new-group form
+  const toggleGroupFriend = (id: string) =>
     setGroupSelection(prev =>
-      prev.includes(friendId)
-        ? prev.filter(x => x !== friendId)
-        : [...prev, friendId]
+      prev.includes(id)
+        ? prev.filter(x => x !== id) // remove if already selected
+        : [...prev, id]             // add if not
     );
 
-  // Create a new group chat document in Firestore
+  // create and write a new group chat to Firestore
   const createGroupChat = async () => {
     const name = newGroupName.trim();
-    if (!name) return alert("Enter a name.");
+    if (!name)               return alert("Enter a name.");
     if (!groupSelection.length) return alert("Select friends.");
 
-    // generate a Firestore-safe ID from the name
+    // sanitize group name into a document ID
     const id = name
       .toLowerCase()
-      .replace(/\s+/g, "_")
-      .replace(/[^a-z0-9_]/g, "");
+      .replace(/\s+/g, "_")           // spaces → underscores
+      .replace(/[^a-z0-9_]/g, "");      // remove invalid chars
     const ref = doc(db, "groupChats", id);
 
     if ((await getDoc(ref)).exists()) {
@@ -140,47 +141,55 @@ export default function App() {
       await setDoc(ref, {
         name,
         members: [username, ...groupSelection],
-        createdAt: new Date(),
+        createdAt: new Date()
       });
-      setSelectedFriend(id); // open new group chat
+      setSelectedFriend(id); // immediately open new group chat
     } catch {
       alert("Failed to create.");
     }
 
-    // reset form & close modal
+    // reset and close modal
     setNewGroupName("");
     setGroupSelection([]);
     setShowMakeGroup(false);
   };
 
-  // --- Conditional rendering: different screens ---
-  if (!loggedIn)               return <Login onLogin={handleLogin} />;
-  if (selectedFriend)          return <ChatRoom currentUser={username} friend={selectedFriend} onBack={() => setSelectedFriend(null)} />;
-  if (showCamera)              return <Camera userId={username} onClose={() => setShowCamera(false)} />;
-  if (showGallery) return (
-    <Gallery
-      userId={username}
-      onClose={() => setShowGallery(false)}
-      setSelectedImageUrl={setImgUrl}
-      setSelectedImageName={setImgName}
-    />
-  );
+  // --- CONDITIONAL RENDERING FOR NAVIGATION ---
+  if (!loggedIn)   return <Login onLogin={handleLogin} />; // login screen first
+  if (selectedFriend) // open ChatRoom for 1-on-1 or group chat
+    return (
+      <ChatRoom
+        currentUser={username}
+        friend={selectedFriend}
+        onBack={() => setSelectedFriend(null)} // go back to main UI
+      />
+    );
+  if (showCamera)
+    return <Camera userId={username} onClose={() => setShowCamera(false)} />; // camera screen
+  if (showGallery)
+    return (
+      <Gallery
+        userId={username}
+        onClose={() => setShowGallery(false)}
+        setSelectedImageUrl={setImgUrl}    // update state when an image is chosen
+        setSelectedImageName={setImgName}
+      />
+    );
 
-  // --- Main UI layout ---
+  // --- MAIN UI LAYOUT ---
   return (
     <main className="main-screen">
       <div className="strip-container">
-        {/* Sidebar with friend & modal controls */}
+        {/* Sidebar with buttons to open various modals */}
         <div className="white_strip">
           <div className="sidebar-button-grid">
-            <button onClick={() => setShowAddFriend(true)}>➕ Add new friends</button>
-            <button onClick={() => setShowPending(true)}>📩 Pending requests</button>
-            <button onClick={() => setShowNewChat(true)}>💬 view Chats</button>
-            <button onClick={() => setShowMakeGroup(true)}>👥 create Groupchat</button>
-            <button onClick={() => setShowViewGroups(true)}>👀 View groupchats</button>
+            <button onClick={() => setShowAddFriend(true)}>➕ Add friends</button>
+            <button onClick={() => setShowPending(true)}>📩 Pending</button>
+            <button onClick={() => setShowNewChat(true)}>💬 Chats</button>
+            <button onClick={() => setShowMakeGroup(true)}>👥 New Group</button>
+            <button onClick={() => setShowViewGroups(true)}>👀 View Groups</button>
           </div>
-
-          {/* Render friend list */}
+          {/* List of friends; click to open a chat */}
           <div className="friend-list-container">
             <h4>Your Friends</h4>
             {friends.length ? (
@@ -198,23 +207,22 @@ export default function App() {
           </div>
         </div>
 
-        {/* Center area: camera/gallery and profile preview */}
+        {/* Center section: camera/gallery triggers & profile preview */}
         <div className="center_white_strip">
           <div className="buttons">
             <button onClick={() => setShowCamera(true)}>📸 Camera</button>
             <button onClick={() => setShowGallery(true)}>🖼️ Gallery</button>
           </div>
-          <div style={{ marginTop: 30, textAlign: "center" }}>
+          <div style={{ marginTop:30, textAlign:"center" }}>
             <h4>📷 {imgName || "No image selected."}</h4>
             {imgUrl && (
-              <>
-                <h4 style={{ marginTop: 20 }}>🖼️ Preview</h4>
+              <>  {/* preview and removal of existing profile pic */}
+                <h4 style={{ marginTop:20 }}>🖼️ Preview</h4>
                 <img src={imgUrl} alt="Selected" className="profile-preview" />
-                {/* Remove profile picture */}
-                <button onClick={async () => {
+                <button onClick={async ()=>{
                   try {
                     await deleteDoc(doc(db, "users", username, "profile", "image"));
-                  } catch (e) {
+                  } catch(e) {
                     console.error(e);
                   }
                 }}>
@@ -226,11 +234,20 @@ export default function App() {
         </div>
       </div>
 
-      {/* --- Modals/Overlays --- */}
-      {showAddFriend && <AddFriendModal onClose={() => setShowAddFriend(false)} currentUser={username} />}
-      {showPending && <PendingRequestsModal onClose={() => setShowPending(false)} currentUser={username} addFriendToUsers={addFriendToUsers} />}
+      {/* --- MODALS & OVERLAYS --- */}
+      {showAddFriend && (
+        <AddFriendModal onClose={() => setShowAddFriend(false)} currentUser={username} />
+      )}
 
-      {/* New Chat Modal */}
+      {showPending && (
+        <PendingRequestsModal
+          onClose={() => setShowPending(false)}
+          currentUser={username}
+          addFriendToUsers={addFriendToUsers}
+        />
+      )}
+
+      {/* New Chat: list friends with Chat buttons */}
       {showNewChat && (
         <div className="modal-overlay new-chat-modal">
           <div className="modal-content">
@@ -254,7 +271,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Create Group Modal */}
+      {/* Create Group modal: enter name, pick friends, create */}
       {showMakeGroup && (
         <div className="modal-overlay">
           <div className="modal-content">
@@ -284,22 +301,26 @@ export default function App() {
               <p>No friends yet.</p>
             )}
             <button onClick={createGroupChat}>Create</button>
-            <button onClick={() => { setShowMakeGroup(false); setGroupSelection([]); setNewGroupName(""); }}>Cancel</button>
+            <button onClick={() => { setShowMakeGroup(false); setGroupSelection([]); setNewGroupName(""); }}>
+              Cancel
+            </button>
           </div>
         </div>
       )}
 
-      {/* View Groups Modal */}
+      {/* View Groups modal: list and open group chats */}
       {showViewGroups && (
         <div className="modal-overlay">
           <div className="modal-content">
             <h3>Your Groups</h3>
             {groupChatsList.length ? (
               <ul className="new-chat-list">
-                {groupChatsList.map(chat => (
-                  <li key={chat.id}>
-                    <span>{chat.name}</span>
-                    <button onClick={() => { setSelectedFriend(chat.id); setShowViewGroups(false); }}>Open</button>
+                {groupChatsList.map(c => (
+                  <li key={c.id}>
+                    <span>{c.name}</span>
+                    <button onClick={() => { setSelectedFriend(c.id); setShowViewGroups(false); }}>
+                      Open
+                    </button>
                   </li>
                 ))}
               </ul>
