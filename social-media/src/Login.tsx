@@ -1,93 +1,104 @@
-// Importing React hooks and Firestore functions we’ll use
+// Importing React hooks and Firestore functions
 import React, { useState, useEffect, FormEvent } from "react";
 import {
-  doc,        // to get a reference to a specific document
-  getDoc,     // to read a document
-  setDoc,     // to create/overwrite a document
-  updateDoc,  // to update fields in an existing document
-  getDocs,    // to read multiple documents from a collection
-  collection, // to get a reference to a collection
+  doc,        // create a reference (pointer) to a specific document in Firestore
+  getDoc,     // read one document from Firestore
+  setDoc,     // create or overwrite a document
+  updateDoc,  // update certain fields in an existing document
+  getDocs,    // read multiple documents from a collection
+  collection, // create a reference to a collection (like "users")
 } from "firebase/firestore";
 import { db } from "./firebase"; // your initialized Firestore instance
 
-// Define the props accepted by this component
+// The props this component accepts (from its parent)
 interface LoginProps {
   onLogin: (username: string, id: number) => void; 
-  // callback to notify parent when login/signup succeeds
+  // onLogin is a function the parent passes in
+  // we call it when login or signup succeeds
 }
 
 export default function Login({ onLogin }: LoginProps) {
-  // --- FORM STATE ---
-  const [username, setUsername] = useState(""); // holds current username input
-  const [password, setPassword] = useState(""); // holds current password input
-  const [isSignup, setIsSignup] = useState(false); // toggle between Log In / Sign Up
-  const [error, setError] = useState("");         // stores any error message
+  // --- STATE (form + UI) ---
+  const [username, setUsername] = useState(""); // stores typed username
+  const [password, setPassword] = useState(""); // stores typed password
+  const [isSignup, setIsSignup] = useState(false); // true=signup view, false=login view
+  const [error, setError] = useState(""); // stores any error message shown to user
 
-  // --- ID GENERATOR FOR NEW USERS ---
-  // Ensures each new user gets a unique 6-digit numeric ID
+  // --- HELPER: Generate a unique random ID for new users ---
   const generateId = async (): Promise<number> => {
-    const used = new Set<number>();
-    // Fetch all existing users, collect their .id values
+    const used = new Set<number>(); // keeps track of IDs already in use
+
+    // get all user documents from Firestore
     const snapshot = await getDocs(collection(db, "users"));
+
+    // loop through all user docs
     snapshot.forEach((doc) => {
-      const data = doc.data();
-      if (data.id) used.add(data.id);
+      const data = doc.data(); // fields of this user’s doc
+      if (data.id) {
+        used.add(data.id); // if user has an "id", mark it as taken
+      }
     });
 
-    // Keep picking a random 6-digit number until it’s unused
+    // keep generating random 6-digit numbers until we find one not taken
     let id: number;
     do {
-      id = Math.floor(100_000 + Math.random() * 900_000);
+      id = Math.floor(100_000 + Math.random() * 900_000); // random 100000–999999
     } while (used.has(id));
-    return id;
+
+    return id; // return an unused id
   };
 
-  // --- FORM SUBMISSION HANDLER ---
+  // --- FORM SUBMISSION HANDLER (login or signup) ---
   const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault(); // prevent full-page reload
-    const name = username.trim();
+    e.preventDefault(); // prevent page refresh
+    const name = username.trim(); // trim extra spaces
     const pass = password.trim();
 
-    // Simple client-side validation
+    // basic validation
     if (!name || !pass) {
       setError("Username and password cannot be empty.");
       return;
     }
 
-    // Reference to this user’s document
+    // reference to Firestore document: "users/{username}"
+    //makes a reference to document in database "users" and the names under them
     const ref = doc(db, "users", name);
+
+    // get document snapshot from Firestore
+    // after making reference(pointing at it) you actually grab it
     const snap = await getDoc(ref);
+
+    // get the data inside the document (or undefined if doc doesn't exist)
     const data = snap.data();
 
     if (isSignup) {
-      // ----- SIGN UP FLOW -----
+      // --- SIGNUP MODE ---
       if (snap.exists()) {
-        setError("Username already taken.");
+        setError("Username already taken."); // user exists
         return;
       }
-      // generate and assign a unique numeric ID
-      const id = await generateId();
-      await setDoc(ref, {
+      const id = await generateId(); // make a unique numeric ID calls function from line 43
+      await setDoc(ref, { // setdoc means creat a document in the database
         id,
         password: pass,
-        createdAt: new Date(),
+        createdAt: new Date(), // store signup timestamp
       });
-      onLogin(name, id); // notify parent component
+      onLogin(name, id); // tell parent login/signup was successful
     } else {
-      // ----- LOG IN FLOW -----
-      if (!snap.exists()) {
-        setError("Incorrect username.");
+      // --- LOGIN MODE ---
+      if (!snap.exists()) { 
+        setError("Incorrect username."); // no such user
         return;
       }
-      if (data?.password !== pass) {
-        setError("Incorrect password.");
+      if (data?.password !== pass) { // ? stops program from crashing if data is undefined
+        setError("Incorrect password."); // password mismatch
         return;
       }
-      onLogin(name, data.id); // successful login
+      onLogin(name, data.id); // success → notify parent
     }
   };
 
-  // --- PASSWORD CHANGE HANDLER (only on Login view) ---
+  // --- CHANGE PASSWORD HANDLER (only visible in login mode) ---
   const handleChangePassword = async () => {
     const name = username.trim();
     if (!name) {
@@ -97,24 +108,26 @@ export default function Login({ onLogin }: LoginProps) {
 
     const ref = doc(db, "users", name);
     const snap = await getDoc(ref);
+
     if (!snap.exists()) {
       setError("User not found.");
       return;
     }
 
-    // Prompt for current and new passwords
+    // ask for current + new passwords
     const current = prompt("Enter your current password:");
     if (!current || snap.data()?.password !== current.trim()) {
       alert("❌ Incorrect current password.");
       return;
     }
+
     const next = prompt("Enter your new password:");
     if (!next || next.trim().length < 3) {
       alert("❌ Password too short.");
       return;
     }
 
-    // Update Firestore
+    // update Firestore with new password
     try {
       await updateDoc(ref, { password: next.trim() });
       alert("✅ Password updated!");
@@ -123,53 +136,53 @@ export default function Login({ onLogin }: LoginProps) {
     }
   };
 
-  // --- RENDER ---
+  // --- UI RENDER ---
   return (
     <main className="login-screen">
       <h1>
         Welcome to SnapClone 📸
         <br />
         <span style={{ fontSize: 14, color: "#888" }}>
-          {/* You could show a subtitle here */}
+          {/* (optional subtitle here) */}
         </span>
       </h1>
 
-      {/* Toggle between Login and Sign-Up modes */}
+      {/* Buttons to toggle between Login and Signup */}
       <div className="toggle-buttons">
         {["Log In", "Sign Up"].map((label, i) => (
           <button
             key={label}
             onClick={() => {
-              setIsSignup(!!i); // i===0 → Log In, i===1 → Sign Up
-              setError("");      // clear errors when switching
+              setIsSignup(!!i); // switch mode: 0=false=login, 1=true=signup
+              setError("");     // clear any old error messages
             }}
-            className={isSignup === !!i ? "active" : ""}
+            className={isSignup === !!i ? "active" : ""} // highlight active button
           >
             {label}
           </button>
         ))}
       </div>
 
-      {/* The actual form */}
+      {/* The login/signup form */}
       <form onSubmit={handleSubmit}>
         <input
           type="text"
           placeholder={isSignup ? "Choose a username…" : "Enter your username…"}
           value={username}
-          onChange={(e) => setUsername(e.target.value)}
+          onChange={(e) => setUsername(e.target.value)} // update state on typing
         />
         <input
           type="password"
           placeholder={isSignup ? "Choose a password…" : "Enter your password…"}
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(e) => setPassword(e.target.value)} // update state on typing
         />
         <button type="submit">
           {isSignup ? "Create Account" : "Log In"}
         </button>
       </form>
 
-      {/* Only show password-change when logging in */}
+      {/* Show password change option ONLY if logging in */}
       {!isSignup && (
         <button
           onClick={handleChangePassword}
@@ -179,10 +192,10 @@ export default function Login({ onLogin }: LoginProps) {
         </button>
       )}
 
-      {/* Display any form errors */}
+      {/* Show error message if exists */}
       {error && <p className="error-message">{error}</p>}
 
-      {/* Helper text under the form */}
+      {/* Little note under form */}
       <p className="login-note">
         {isSignup
           ? "Already have an account? Click Log In above."
