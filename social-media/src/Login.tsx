@@ -65,23 +65,23 @@ export default function Login({ onLogin }: LoginProps) {
 
     // reference to Firestore document: "users/{username}"
     //makes a reference to document in database "users" and the names under them
-    const ref = doc(db, "users", name);
+    const document = doc(db, "users", name);
 
     // get document snapshot from Firestore
     // after making reference(pointing at it) you actually grab it
-    const snap = await getDoc(ref);
+    const user = await getDoc(document);
 
     // get the data inside the document (or undefined if doc doesn't exist)
-    const data = snap.data();
+    const userdata = user.data();
 
-    if (isSignup) {
+    if (isSignup === true) {
       // --- SIGNUP MODE ---
-      if (snap.exists()) {
+      if (user.exists() === true) {
         setError("Username already taken."); // user exists
         return;
-      }
+      } 
       const id = await generateId(); // make a unique numeric ID calls function from line 43
-      await setDoc(ref, { // setdoc means creat a document in the database
+      await setDoc(document, { // setdoc means creat a document in the database
         id,
         password: pass,
         createdAt: new Date(), // store signup timestamp
@@ -89,15 +89,15 @@ export default function Login({ onLogin }: LoginProps) {
       onLogin(name, id); // tell parent login/signup was successful
     } else {
       // --- LOGIN MODE ---
-      if (!snap.exists()) {
+      if (user.exists() === false) {
         setError("Incorrect username."); // no such user
         return;
       }
-      if (data?.password !== pass) { // ? stops program from crashing if data is undefined
+      if (userdata?.password !== pass) { // ? stops program from crashing if data is undefined
         setError("Incorrect password."); // password mismatch
         return;
       }
-      onLogin(name, data.id); // success → notify parent
+      onLogin(name, userdata.id); // success → notify parent
     }
   };
 
