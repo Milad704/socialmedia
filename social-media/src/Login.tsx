@@ -12,7 +12,7 @@ import { db } from "./firebase"; // your initialized Firestore instance
 
 // The props this component accepts (from its parent)
 interface LoginProps {
-  onLogin: (username: string, id: number) => void; 
+  onLogin: (username: string, id: number) => void;
   // onLogin is a function the parent passes in
   // we call it when login or signup succeeds
 }
@@ -25,28 +25,31 @@ export default function Login({ onLogin }: LoginProps) {
   const [error, setError] = useState(""); // stores any error message shown to user
 
   // --- HELPER: Generate a unique random ID for new users ---
-  const generateId = async (): Promise<number> => {
-    const used = new Set<number>(); // keeps track of IDs already in use
-
-    // get all user documents from Firestore
+  const generateId = async () => {
+    const used: number[] = [];
     const snapshot = await getDocs(collection(db, "users"));
-
-    // loop through all user docs
     snapshot.forEach((doc) => {
-      const data = doc.data(); // fields of this user’s doc
-      if (data.id) {
-        used.add(data.id); // if user has an "id", mark it as taken
+      const dataid = doc.data();
+      if (dataid.id != null) {
+        used.push(dataid.id);
       }
-    });
-
-    // keep generating random 6-digit numbers until we find one not taken
-    let id: number;
+    })
+    let id;
     do {
-      id = Math.floor(100_000 + Math.random() * 900_000); // random 100000–999999
-    } while (used.has(id));
-
-    return id; // return an unused id
-  };
+      let alreadyused = false;
+      id = Math.floor(100_000 + Math.random() * 900_000);
+      for (let i = 0; i < used.length; i++) {
+        if (used[i] === id) {
+          alreadyused = true;
+          break
+        }
+      }
+      if (alreadyused === false) {
+        break
+      }
+    } while (true)
+    return id
+  }
 
   // --- FORM SUBMISSION HANDLER (login or signup) ---
   const handleSubmit = async (e: FormEvent) => {
@@ -55,7 +58,7 @@ export default function Login({ onLogin }: LoginProps) {
     const pass = password.trim();
 
     // basic validation
-    if (!name || !pass) {
+    if (name === ("") || pass === ("")) {
       setError("Username and password cannot be empty.");
       return;
     }
@@ -86,7 +89,7 @@ export default function Login({ onLogin }: LoginProps) {
       onLogin(name, id); // tell parent login/signup was successful
     } else {
       // --- LOGIN MODE ---
-      if (!snap.exists()) { 
+      if (!snap.exists()) {
         setError("Incorrect username."); // no such user
         return;
       }
