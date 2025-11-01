@@ -52,61 +52,93 @@ export default function Login({ onLogin }: LoginProps) {
   }
 
   // --- FORM SUBMISSION HANDLER (login or signup) ---
-  //  const handleSubmit = async (submitEvent: FormEvent) => {
-  //   const name = username.trim();
-  //   const pass = password.trim();
-  //   if (name === null || pass === null){
-  //     setError("Username and password cannot be empty");
-  //   }
-  //  }
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault(); // prevent page refresh
-    const name = username.trim(); // trim extra spaces
+  const handleSubmit = async (submitEvent: FormEvent) => {
+    submitEvent.preventDefault();
+    const name = username.trim();
     const pass = password.trim();
-
-    // basic validation
     if (name === ("") || pass === ("")) {
-      setError("Username and password cannot be empty.");
+      setError("Username and password cannot be empty");
       return;
     }
+    // this 3 lines of code is to see if this name chosen is already in database
+    const userdoc_ref = doc(db, "users", name); // make a reference to this document
 
-    // reference to Firestore document: "users/{username}"
-    //makes a reference to document in database "users" and the names under them
-    const document = doc(db, "users", name);
+    const userdoc = await getDoc(userdoc_ref); // grab document if it exists, couldnt before referencing it
 
-    // get document snapshot from Firestore
-    // after making reference(pointing at it) you actually grab it
-    const user = await getDoc(document);
-
-    // get the data inside the document (or undefined if doc doesn't exist)
-    const userdata = user.data();
+    const userdata = userdoc.data(); // get the actual data inside
 
     if (isSignup === true) {
-      // --- SIGNUP MODE ---
-      if (user.exists() === true) {
-        setError("Username already taken."); // user exists
+      if (userdoc.exists() === true) {
+        setError("this user name is already taken")
         return;
-      } 
-      const id = await generateId(); // make a unique numeric ID calls function from line 43
-      await setDoc(document, { // setdoc means creat a document in the database
-        id,
+      }
+      const id = await generateId();
+      await setDoc(userdoc_ref, { // setdoc creates doc, must be a reference inside bracket to be crea
+        id: id,
         password: pass,
-        createdAt: new Date(), // store signup timestamp
+        createdAt: new Date(),
       });
       onLogin(name, id); // tell parent login/signup was successful
     } else {
-      // --- LOGIN MODE ---
-      if (user.exists() === false) {
-        setError("Incorrect username."); // no such user
+      if (userdoc.exists() === false){
+        setError("this username does not exist")
         return;
       }
-      if (userdata?.password !== pass) { // ? stops program from crashing if data is undefined
-        setError("Incorrect password."); // password mismatch
-        return;
+      if (userdata?.password !== pass){ // ? is incase userdata is not defined, causes error.
+        setError("Incorrect password")
+        return
       }
-      onLogin(name, userdata.id); // success → notify parent
+      onLogin(name, userdata.id);
     }
-  };
+  }
+  // const handleSubmit = async (e: FormEvent) => {
+  //   e.preventDefault(); // prevent page refresh
+  //   const name = username.trim(); // trim extra spaces
+  //   const pass = password.trim();
+
+  //   // basic validation
+  //   if (name === ("") || pass === ("")) {
+  //     setError("Username and password cannot be empty.");
+  //     return;
+  //   }
+
+  //   // reference to Firestore document: "users/{username}"
+  //   //makes a reference to document in database "users" and the names under them
+  //   const document = doc(db, "users", name);
+
+  //   // get document snapshot from Firestore
+  //   // after making reference(pointing at it) you actually grab it
+  //   const user = await getDoc(document);
+
+  //   // get the data inside the document (or undefined if doc doesn't exist)
+  //   const userdata = user.data();
+
+  //   if (isSignup === true) {
+  //     // --- SIGNUP MODE ---
+  //     if (user.exists() === true) {
+  //       setError("Username already taken."); // user exists
+  //       return;
+  //     }
+  //     const id = await generateId(); // make a unique numeric ID calls function from line 43
+  //     await setDoc(document, { // setdoc means creat a document in the database
+  //       id,
+  //       password: pass,
+  //       createdAt: new Date(), // store signup timestamp
+  //     });
+  //     onLogin(name, id); // tell parent login/signup was successful
+  //   } else {
+  //     // --- LOGIN MODE ---
+  //     if (user.exists() === false) {
+  //       setError("Incorrect username."); // no such user
+  //       return;
+  //     }
+  //     if (userdata?.password !== pass) { // ? stops program from crashing if data is undefined
+  //       setError("Incorrect password."); // password mismatch
+  //       return;
+  //     }
+  //     onLogin(name, userdata.id); // success → notify parent
+  //   }
+  // };
 
   // --- CHANGE PASSWORD HANDLER (only visible in login mode) ---
   const handleChangePassword = async () => {
