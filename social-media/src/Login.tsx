@@ -52,9 +52,13 @@ export default function Login({ onLogin }: LoginProps) {
   }
 
   // --- FORM SUBMISSION HANDLER (login or signup) ---
-  // const handleSubmit = async (submitEvent: FormEvent) => {
-    
-  // }
+  //  const handleSubmit = async (submitEvent: FormEvent) => {
+  //   const name = username.trim();
+  //   const pass = password.trim();
+  //   if (name === null || pass === null){
+  //     setError("Username and password cannot be empty");
+  //   }
+  //  }
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault(); // prevent page refresh
     const name = username.trim(); // trim extra spaces
