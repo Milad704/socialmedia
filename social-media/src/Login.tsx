@@ -56,7 +56,7 @@ export default function Login({ onLogin }: LoginProps) {
     
   // }
   const handleSubmit = async (e: FormEvent) => {
-    // e.preventDefault(); // prevent page refresh
+    e.preventDefault(); // prevent page refresh
     const name = username.trim(); // trim extra spaces
     const pass = password.trim();
 
