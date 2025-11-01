@@ -52,8 +52,11 @@ export default function Login({ onLogin }: LoginProps) {
   }
 
   // --- FORM SUBMISSION HANDLER (login or signup) ---
+  // const handleSubmit = async (submitEvent: FormEvent) => {
+    
+  // }
   const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault(); // prevent page refresh
+    // e.preventDefault(); // prevent page refresh
     const name = username.trim(); // trim extra spaces
     const pass = password.trim();
 
