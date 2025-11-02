@@ -22,7 +22,6 @@ export default function Login({ onLogin }: LoginProps) {
   const [username, setUsername] = useState(""); // stores typed username
   const [password, setPassword] = useState(""); // stores typed password
   const [isSignup, setIsSignup] = useState(false); // true=signup view, false=login view
-  const [error, setError] = useState(""); // stores any error message shown to user
 
   // --- HELPER: Generate a unique random ID for new users ---
   const generateId = async () => {
@@ -57,7 +56,7 @@ export default function Login({ onLogin }: LoginProps) {
     const name = username.trim();
     const pass = password.trim();
     if (name === ("") || pass === ("")) {
-      setError("Username and password cannot be empty");
+      alert("Username and password cannot be empty");
       return;
     }
     // this 3 lines of code is to see if this name chosen is already in database
@@ -69,7 +68,7 @@ export default function Login({ onLogin }: LoginProps) {
 
     if (isSignup === true) {
       if (userdoc.exists() === true) {
-        setError("this user name is already taken")
+        alert("this user name is already taken")
         return;
       }
       const id = await generateId();
@@ -80,102 +79,41 @@ export default function Login({ onLogin }: LoginProps) {
       });
       onLogin(name, id); // tell parent login/signup was successful
     } else {
-      if (userdoc.exists() === false){
-        setError("this username does not exist")
+      if (userdoc.exists() === false) {
+        alert("this username does not exist")
         return;
       }
-      if (userdata?.password !== pass){ // ? is incase userdata is not defined, causes error.
-        setError("Incorrect password")
+      if (userdata?.password !== pass) { // ? is incase userdata is not defined, causes error.
+        alert("Incorrect password")
         return
       }
       onLogin(name, userdata.id);
     }
   }
-  // const handleSubmit = async (e: FormEvent) => {
-  //   e.preventDefault(); // prevent page refresh
-  //   const name = username.trim(); // trim extra spaces
-  //   const pass = password.trim();
 
-  //   // basic validation
-  //   if (name === ("") || pass === ("")) {
-  //     setError("Username and password cannot be empty.");
-  //     return;
-  //   }
-
-  //   // reference to Firestore document: "users/{username}"
-  //   //makes a reference to document in database "users" and the names under them
-  //   const document = doc(db, "users", name);
-
-  //   // get document snapshot from Firestore
-  //   // after making reference(pointing at it) you actually grab it
-  //   const user = await getDoc(document);
-
-  //   // get the data inside the document (or undefined if doc doesn't exist)
-  //   const userdata = user.data();
-
-  //   if (isSignup === true) {
-  //     // --- SIGNUP MODE ---
-  //     if (user.exists() === true) {
-  //       setError("Username already taken."); // user exists
-  //       return;
-  //     }
-  //     const id = await generateId(); // make a unique numeric ID calls function from line 43
-  //     await setDoc(document, { // setdoc means creat a document in the database
-  //       id,
-  //       password: pass,
-  //       createdAt: new Date(), // store signup timestamp
-  //     });
-  //     onLogin(name, id); // tell parent login/signup was successful
-  //   } else {
-  //     // --- LOGIN MODE ---
-  //     if (user.exists() === false) {
-  //       setError("Incorrect username."); // no such user
-  //       return;
-  //     }
-  //     if (userdata?.password !== pass) { // ? stops program from crashing if data is undefined
-  //       setError("Incorrect password."); // password mismatch
-  //       return;
-  //     }
-  //     onLogin(name, userdata.id); // success → notify parent
-  //   }
-  // };
-
-  // --- CHANGE PASSWORD HANDLER (only visible in login mode) ---
   const handleChangePassword = async () => {
     const name = username.trim();
-    if (!name) {
-      setError("Enter your username first.");
+    if (name === ("")) {
+      alert("Enter your username first");
       return;
     }
+    const userdoc_ref = doc(db, "users", name);
 
-    const ref = doc(db, "users", name);
-    const snap = await getDoc(ref);
+    const userdoc = await getDoc(userdoc_ref);
 
-    if (!snap.exists()) {
-      setError("User not found.");
+    const userdata = userdoc.data();
+
+    if (userdoc.exists() === false) {
+      alert("Incorrect username, please use correct username");
       return;
     }
-
-    // ask for current + new passwords
-    const current = prompt("Enter your current password:");
-    if (!current || snap.data()?.password !== current.trim()) {
-      alert("❌ Incorrect current password.");
+    const ask_currentpass = prompt("Input your current password");
+    if (userdata?.password !== ask_currentpass) {
+      alert("incorrect password");
       return;
     }
-
-    const next = prompt("Enter your new password:");
-    if (!next || next.trim().length < 3) {
-      alert("❌ Password too short.");
-      return;
-    }
-
-    // update Firestore with new password
-    try {
-      await updateDoc(ref, { password: next.trim() });
-      alert("✅ Password updated!");
-    } catch {
-      alert("❌ Failed to update password.");
-    }
+    const make_newpass = prompt("Input the new password you want");
+    await updateDoc(userdoc_ref, { password: make_newpass?.trim() })
   };
 
   // --- UI RENDER ---
@@ -185,24 +123,20 @@ export default function Login({ onLogin }: LoginProps) {
         Welcome to SnapClone 📸
         <br />
         <span style={{ fontSize: 14, color: "#888" }}>
-          {/* (optional subtitle here) */}
         </span>
       </h1>
 
       {/* Buttons to toggle between Login and Signup */}
       <div className="toggle-buttons">
-        {["Log In", "Sign Up"].map((label, i) => (
-          <button
-            key={label}
-            onClick={() => {
-              setIsSignup(!!i); // switch mode: 0=false=login, 1=true=signup
-              setError("");     // clear any old error messages
-            }}
-            className={isSignup === !!i ? "active" : ""} // highlight active button
-          >
-            {label}
-          </button>
-        ))}
+        {/* Login button */}
+        <button
+          onClick={() => setIsSignup(false)}>
+          log in
+        </button>
+        <button 
+        onClick={() => setIsSignup(true)}>
+          Sign Up
+        </button>
       </div>
 
       {/* The login/signup form */}
@@ -211,7 +145,7 @@ export default function Login({ onLogin }: LoginProps) {
           type="text"
           placeholder={isSignup ? "Choose a username…" : "Enter your username…"}
           value={username}
-          onChange={(e) => setUsername(e.target.value)} // update state on typing
+          onChange={(typeevent) => setUsername(typeevent.target.value)} // update state on typing
         />
         <input
           type="password"
@@ -233,9 +167,6 @@ export default function Login({ onLogin }: LoginProps) {
           🔑 Change Password
         </button>
       )}
-
-      {/* Show error message if exists */}
-      {error && <p className="error-message">{error}</p>}
 
       {/* Little note under form */}
       <p className="login-note">
