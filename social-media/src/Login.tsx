@@ -26,8 +26,8 @@ export default function Login({ onLogin }: LoginProps) {
   // --- HELPER: Generate a unique random ID for new users ---
   const generateId = async () => {
     const used: number[] = [];
-    const snapshot = await getDocs(collection(db, "users"));
-    snapshot.forEach((doc) => {
+    const userdocs = await getDocs(collection(db, "users"));
+    userdocs.forEach((doc) => {
       const dataid = doc.data();
       if (dataid.id != null) {
         used.push(dataid.id);
@@ -133,29 +133,50 @@ export default function Login({ onLogin }: LoginProps) {
           onClick={() => setIsSignup(false)}>
           log in
         </button>
-        <button 
-        onClick={() => setIsSignup(true)}>
+        <button
+          onClick={() => setIsSignup(true)}>
           Sign Up
         </button>
       </div>
 
       {/* The login/signup form */}
       <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          placeholder={isSignup ? "Choose a username…" : "Enter your username…"}
-          value={username}
-          onChange={(typeevent) => setUsername(typeevent.target.value)} // update state on typing
-        />
-        <input
-          type="password"
-          placeholder={isSignup ? "Choose a password…" : "Enter your password…"}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)} // update state on typing
-        />
-        <button type="submit">
-          {isSignup ? "Create Account" : "Log In"}
-        </button>
+        {/*showing input and button if user is signing up */}
+        {isSignup && (
+          <input
+            type="text"
+            placeholder="Choose a username"
+            onChange={(type_event) => setUsername(type_event.target.value)}
+          ></input>
+        )}
+        {isSignup && (
+          <input
+            type="password"
+            placeholder="Choose a password"
+            onChange={(type_event) => setPassword(type_event.target.value)}
+          ></input>
+        )}
+        {isSignup && (
+          <button type="submit">
+            create a account
+          </button>
+        )}
+        {/* input and button if user is logging in */}
+        {!isSignup && (
+          <input type="text" placeholder="type your username"
+            onChange={(type_event) => setUsername(type_event.target.value)}>
+          </input>
+        )}
+        {!isSignup && (
+          <input type="password" placeholder="type your password"
+            onChange={(type_event) => setPassword(type_event.target.value)}>
+            </input>
+        )}
+        {!isSignup && (
+          <button type="submit">
+            log in
+          </button>
+        )}
       </form>
 
       {/* Show password change option ONLY if logging in */}
