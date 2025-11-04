@@ -68,7 +68,7 @@ export default function AddFriendModal({ currentUser, onClose }: Props) {
   // Function to send a friend request
 
   const sendRequest = async(to_otheruser: string) => {
-    if (sent.includes(to_otheruser) === true){
+    if (sent.includes(to_otheruser) === true){ // if you already sent a friend request
       return;
     }
     await updateDoc(doc(db, "users", to_otheruser), {
@@ -78,7 +78,7 @@ export default function AddFriendModal({ currentUser, onClose }: Props) {
       sentRequests: arrayUnion(to_otheruser),
     });
 
-    setSent(prev_array => [...prev_array, to_otheruser]); // takes current array of sent requests and adds another one.
+    setSent(prev_array => [...prev_array, to_otheruser]); // takes current array of sent requests and adds another value.
   }
   // const sendRequest = async (to: string) => {
   //   if (sent.includes(to)) return; // Prevent sending again

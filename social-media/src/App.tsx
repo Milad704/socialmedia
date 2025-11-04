@@ -27,12 +27,12 @@ import PendingRequestsModal from "./PendingRequestsModal"; // modal to accept/de
 import "./App.css"; // global styles
 
 // HELPER: add each user to the other's `friends` array
-const addFriendToUsers = async (a: string, b: string) => {
+const addFriendToUsers = async (currentUser: string, otheruser: string) => {
   try {
     // update both user docs in parallel for efficiency
     await Promise.all([
-      updateDoc(doc(db, "users", a), { friends: arrayUnion(b) }),
-      updateDoc(doc(db, "users", b), { friends: arrayUnion(a) }),
+      updateDoc(doc(db, "users", currentUser), { friends: arrayUnion(otheruser) }),
+      updateDoc(doc(db, "users", otheruser), { friends: arrayUnion(currentUser) }),
     ]);
     console.log("✅ Friends added");
   } catch (err) {

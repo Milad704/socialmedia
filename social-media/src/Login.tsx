@@ -99,7 +99,7 @@ export default function Login({ onLogin }: LoginProps) {
     }
     const userdoc_ref = doc(db, "users", name);
 
-    const userdoc = await getDoc(userdoc_ref);
+    const userdoc= await getDoc(userdoc_ref);
 
     const userdata = userdoc.data();
 
