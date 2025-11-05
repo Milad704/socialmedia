@@ -6,12 +6,14 @@ interface Props {
   onClose(): void;
   currentUser: string;
   addFriendToUsers(currentUser: string, otheruser: string): Promise<void>; // 2 users being added
+  setFriends: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
 export default function PendingRequestsModal({
   onClose,
   currentUser,
   addFriendToUsers,
+  setFriends,
 }: Props) {
   // `requests === null` → still loading; `[]` → loaded with zero entries
   const [requests, setRequests] = useState<string[] | null>(null);
@@ -47,6 +49,8 @@ export default function PendingRequestsModal({
   const handle = async (otheruser: string, accept = false) => {
     if (accept === true) {
       await addFriendToUsers(currentUser, otheruser);
+      const snap = await getDoc(doc(db,"users", currentUser));
+      setFriends(snap.data()?.friends || []);
     }
     await updateDoc(doc(db, "users", currentUser), {
       requests: arrayRemove(otheruser),
@@ -82,7 +86,22 @@ export default function PendingRequestsModal({
         {error && <p style={{ color: "red" }}>{error}</p>}
 
         {/* Loading / empty / list states */}
-        {requests === null ? (
+        {requests === null && <p> Loading...</p>}
+
+        {requests !== null && requests?.length === 0 && <p> No pending requests</p>}
+
+        {requests !== null && requests.length > 0 && (
+          <ul>
+            {requests.map(otheruser => (
+              <li key={otheruser} style={{ marginBottom: 10 }}>
+                {otheruser} wants to be your friend
+                <button onClick={() => handle(otheruser, true)}> Accept</button>
+                <button onClick={() => handle(otheruser, false)}>Reject</button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {/* {requests === null ? (
           <p>Loading...</p>
         ) : requests.length === 0 ? (
           <p>No pending requests.</p>
@@ -92,13 +111,13 @@ export default function PendingRequestsModal({
               <li key={otheruser} style={{ marginBottom: 10 }}>
                 {otheruser} wants to be your friend&nbsp;
                 {/* accept */}
-                <button onClick={() => handle(otheruser, true)}>✅</button>
-                {/* reject */}
-                <button onClick={() => handle(otheruser)}>❌</button>
+        {/* <button onClick={() => handle(otheruser, true)}>✅</button> */}
+        {/* reject */}
+        {/* <button onClick={() => handle(otheruser)}>❌</button>
               </li>
             ))}
           </ul>
-        )}
+        // )}
 
         {/* close modal */}
         <button onClick={onClose}>Close</button>

@@ -270,6 +270,7 @@ export default function App() {
           onClose={() => setShowPending(false)}
           currentUser={username}
           addFriendToUsers={addFriendToUsers}
+          setFriends={setFriends}
         />
       )}
 
