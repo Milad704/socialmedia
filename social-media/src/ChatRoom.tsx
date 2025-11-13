@@ -75,8 +75,8 @@ export default function ChatRoom({ currentUser, chatId, onBack }: Props) {
   useEffect(() => {
     const collection = collectionFor(currentUser);
     const querysearch = query(collection, orderBy("createdAt")); // query search to check all messages of collection, order it by whens its created at
-    getDocs(querysearch).then(docSnap => setMessages(docSnap.docs.map(document => ({id: document.id, ...document.data()})))) // ... adds in key pair value of document, const obj = { a: 1, b: 2 }; const newObj = { ...obj, c: 3 };
-    const realtimeListen = onSnapshot(querysearch, snapshot => setMessages(snapshot.docs.map(document => ({id: document.id, ...document.data()}))))
+    getDocs(querysearch).then(docSnap => setMessages(docSnap.docs.map(document => ({ id: document.id, ...document.data() })))) // ... adds in key pair value of document, const obj = { a: 1, b: 2 }; const newObj = { ...obj, c: 3 };
+    const realtimeListen = onSnapshot(querysearch, snapshot => setMessages(snapshot.docs.map(document => ({ id: document.id, ...document.data() }))))
     return () => realtimeListen();
   }, [currentUser, chatId, isGroup]);
   // useEffect(() => {
@@ -90,17 +90,17 @@ export default function ChatRoom({ currentUser, chatId, onBack }: Props) {
   // }, [currentUser, chatId, isGroup]);
 
   // ─── send message to all participants ─────────────
-  const sendMessage = async() => {
-    const text =newMsg.trim();
-    if (!text){ // checks if text is empty
+  const sendMessage = async () => {
+    const text = newMsg.trim();
+    if (!text) { // checks if text is empty
       return;
     }
-    const chatmessage = {text, sender: currentUser, createdAt: new Date()} // message that will be stored in firebase
-    if (isGroup === true){
+    const chatmessage = { text, sender: currentUser, createdAt: new Date() } // message that will be stored in firebase
+    if (isGroup === true) {
       await Promise.all(groupInfo.members.map(member => addDoc(collectionFor(member), chatmessage))); //.map loops over each member, and adds the chatmessage in their subcollection thats stores messages
-    } else{ 
+    } else {
       await addDoc(collectionFor(currentUser), chatmessage);
-      await addDoc(collectionFor(chatId), chatmessage); 
+      await addDoc(collectionFor(chatId), chatmessage);
     }
     setNewMsg(""); // make variable holding text go back to beingempty after sending message
   }
@@ -124,71 +124,105 @@ export default function ChatRoom({ currentUser, chatId, onBack }: Props) {
   // };
 
   // ─── soft-delete for own messages ──────────────────
-  const deleteMessage = async (id: string) => {
-    try {
-      await updateDoc(
-        doc(
-          db,
-          "users",
-          currentUser,
-          isGroup ? "groupChats" : "chats",
-          isGroup ? chatId : [currentUser, chatId].sort().join("_"),
-          "messages",
-          id
-        ),
-        { text: "This message was deleted.", deleted: true }
-      );
-    } catch (err) {
-      console.error("❌ deleteMessage error:", err);
+  const deleteMessage = async (id: string) => { // id is document id for a specific message
+    if (isGroup) {
+      //replaces message text, deleted becomes true
+      await updateDoc(doc(db, "users", currentUser, "groupChats", chatId, "messages", id), { text: "This message was deleted for you.", deleted: true });
+    } else {
+
+      await updateDoc(doc(db, "users", currentUser, "chats", [currentUser, chatId].sort().join("_"), "messages", id), { text: "This message was deleted for you.", deleted: true })
     }
-  };
+  }
+  // const deleteMessage = async (id: string) => {
+  //   try {
+  //     await updateDoc(
+  //       doc(
+  //         db,
+  //         "users",
+  //         currentUser,
+  //         isGroup ? "groupChats" : "chats",
+  //         isGroup ? chatId : [currentUser, chatId].sort().join("_"),
+  //         "messages",
+  //         id
+  //       ),
+  //       { text: "This message was deleted.", deleted: true }
+  //     );
+  //   } catch (err) {
+  //     console.error("❌ deleteMessage error:", err);
+  //   }
+  // };
 
   // ─── remove self from groupChat → go back ─────────
   const leaveGroup = async () => {
-    try {
-      await updateDoc(doc(db, "groupChats", chatId), {
-        members: arrayRemove(currentUser),
-      });
-      onBack();
-    } catch (err) {
-      console.error("❌ leaveGroup error:", err);
-    }
-  };
-
+    await updateDoc(doc(db, "groupChats", chatId), {
+      members: arrayRemove(currentUser),
+    });
+    onBack();
+  }
+  // const leaveGroup = async () => {
+  //   try {
+  //     await updateDoc(doc(db, "groupChats", chatId), {
+  //       members: arrayRemove(currentUser),
+  //     });
+  //     onBack();
+  //   } catch (err) {
+  //     console.error("❌ leaveGroup error:", err);
+  //   }
+  // };
+  let title;
+  if (isGroup) {
+    title = groupInfo.name
+  } else {
+    title = chatId
+  }
   // ─── UI rendering ───────────────────────────────────
   return (
     <main className="chat-room">
       <header>
         <button onClick={onBack}>Back</button>
-        <h2>{isGroup ? groupInfo.name : chatId}</h2>
+        <h2>{title}</h2>
         {isGroup && (
           <>
-            <p>Participants: {groupInfo.members.join(", ")}</p>
-            <button onClick={leaveGroup} style={{ marginLeft: "1rem", fontSize: "0.8rem" }}>
+            <p>Members: {groupInfo.members.join("/ ")}</p>
+            <button onClick={leaveGroup} style={{ marginLeft: "1rem", fontSize: "0.8ren" }}>
               Leave Group
             </button>
           </>
         )}
       </header>
-
       <section className="messages">
+        {/* loops over ever message */}
+        {Messages.map(message => (
+          <div key={message.id} className={message.sender === currentUser ? "my-message" : "their-message"}>
+            <strong>{message.sender}</strong> {message.text}
+            {message.sender === currentUser && !message.deleted && ( 
+              <button onClick={() => deleteMessage(message.id)} style={{ fontSize: "0.6rem", marginLeft: "3px" }}>
+                delete
+              </button>
+            )}
+
+          </div>
+        ))}
+
+      </section>
+      {/* <section className="messages">
         {Messages.map(m => (
           <div key={m.id} className={m.sender === currentUser ? "my-message" : "their-message"}>
-            <strong>{m.sender}</strong>: {m.text}
+            <strong>{m.sender}</strong> {m.text}
             {m.sender === currentUser && !m.deleted && (
-              <button onClick={() => deleteMessage(m.id)} style={{ fontSize: "0.6rem", marginLeft: "4px" }}>
-                🗑️
+              <button onClick={() => deleteMessage(m.id)} style={{ fontSize: "0.6rem", marginLeft: "3px" }}>
+                delete
               </button>
             )}
           </div>
         ))}
-      </section>
+      </section> */}
 
       <div className="chat-input">
         <input
           value={newMsg}
-          onChange={e => setNewMsg(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && sendMessage()}
+          onChange={input_event => setNewMsg(input_event.target.value)}
+          onKeyDown={input_event => input_event.key === "Enter"}
           placeholder="Type a message..."
         />
         <button onClick={sendMessage}>Send</button>

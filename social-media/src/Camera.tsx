@@ -12,11 +12,25 @@ interface CameraProps {
 // Main Camera component
 export default function Camera({ onClose, userId }: CameraProps) {
   // Refs for accessing video and canvas elements
+  // A ref to the <video> element in the DOM
+  // .current will eventually point to the actual <video> so we can control it (like assigning srcObject)
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // A ref to a hidden <canvas> element in the DOM
+  // We use it to draw a frame from the video when taking a snapshot
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);            // Stores active media stream
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);   // Stores MediaRecorder for video
-  const chunksRef = useRef<Blob[]>([]);                          // Stores video chunks during recording
+
+  // A ref to store the active MediaStream from the webcam
+  // This holds the live video/audio stream so we can stop it later or use it elsewhere
+  const streamRef = useRef<MediaStream | null>(null);
+
+  // A ref to store a MediaRecorder instance
+  // MediaRecorder is used to record the live MediaStream into video chunks
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+
+  // A ref to store video chunks (Blob objects) while recording
+  // These chunks are combined into a single video file when recording stops
+  const chunksRef = useRef<Blob[]>([]);
 
   // Component state
   const [recording, setRecording] = useState(false);         // Whether recording is active
@@ -28,29 +42,53 @@ export default function Camera({ onClose, userId }: CameraProps) {
   // Start the camera and stream to video element
   const startCamera = async () => {
     try {
-      // Ask for permission and access webcam & mic
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); //navigator is browser itself
       streamRef.current = stream;
-      if (videoRef.current) videoRef.current.srcObject = stream;
-
-      // Reset state
-      setCameraOn(true);
-      setPreview(null);
-      setName(null);
-      setSaved(false);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        // Reset state
+        setCameraOn(true);
+        setPreview(null);
+        setName(null);
+        setSaved(false);
+      }
     } catch (err: any) {
-      // Show error if camera fails
-      alert(`Camera error: ${err.name}\n${err.message}`);
+      alert(`Camera error: ${err.name}\n${err.message} `)
     }
   };
+  // const startCamera = async () => {
+  //   try {
+  //     // Ask for permission and access webcam & mic
+  //     const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); 
+  //     streamRef.current = stream;
+  //     if (videoRef.current) videoRef.current.srcObject = stream;
+
+  //     // Reset state
+  //     setCameraOn(true);
+  //     setPreview(null);
+  //     setName(null);
+  //     setSaved(false);
+  //   } catch (err: any) {
+  //     // Show error if camera fails
+  //     alert(`Camera error: ${err.name}\n${err.message}`);
+  //   }
+  // };
 
   // Stop camera and clean up tracks
   const stopCamera = () => {
-    streamRef.current?.getTracks().forEach(t => t.stop()); // Stop all media tracks
-    if (videoRef.current) videoRef.current.srcObject = null;
-    streamRef.current = null;
-    setCameraOn(false);
+    streamRef.current?.getTracks().forEach(track => track.stop()); // Stop all media tracks: video track, and audio track
+    if (videoRef.current){
+      videoRef.current.srcObject = null; // stops video stream
+      streamRef.current = null;
+      setCameraOn(false);
+    }
   };
+  // const stopCamera = () => {
+  //   streamRef.current?.getTracks().forEach(t => t.stop()); 
+  //   if (videoRef.current) videoRef.current.srcObject = null;
+  //   streamRef.current = null;
+  //   setCameraOn(false);
+  // };
 
   // Auto stop camera when component unmounts
   useEffect(() => () => stopCamera(), []);
