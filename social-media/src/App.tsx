@@ -166,7 +166,7 @@ export default function App() {
     return (
       <ChatRoom
         currentUser={username}
-        friend={selectedFriend}
+        chatId={selectedFriend} // refers to either groupchat name or name of other user in 1 on 1 chat. 
         onBack={() => setSelectedFriend(null)} // go back to main UI
       />
     );
