@@ -28,6 +28,9 @@ export default function ChatRoom({ currentUser, chatId, onBack }: Props) {
       const chatdoc = await getDoc(doc(db, "groupChats", chatId));
       if (chatdoc.exists() === true) {
         const chatdata = chatdoc.data();
+        if (!chatdata){
+          return;
+        }
         setIsGroup(true);
         setGroupInfo({ name: chatdata.name, members: chatdata.members })
       } else {

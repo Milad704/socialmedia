@@ -156,24 +156,37 @@ export default function Camera({ onClose, userId }: CameraProps) {
 
   // Save captured image to Firestore under /users/{userId}/images/{imageName}
   const saveImage = async () => {
-    if (!preview || !name) return;
-    try {
-      // Ensure user document exists
-      await setDoc(doc(db, "users", userId), {}, { merge: true });
-
-      const safeId = name.replace(/\s+/g, "-"); // Sanitize name for use as document ID
-      await setDoc(doc(db, "users", userId, "images", safeId), {
-        imageName: name,
-        imageData: preview,
-        imageSavedAt: new Date().toISOString(),
-      });
-
-      setSaved(true);
-    } catch (err) {
-      console.error("❌ Save error:", err);
-      alert("Failed to save image.");
+    if (!preview || !name) {
+      return;
     }
-  };
+    const safeName = name.replace(/\s+/g, "-");
+    await setDoc(doc(db, "users", userId, "images", safeName), {
+      imageName: name,
+      imageData: preview,
+      imageSavedAt: new Date().toISOString(),
+    });
+    setSaved(true);
+
+  }
+  // const saveImage = async () => {
+  //   if (!preview || !name) return;
+  //   try {
+  //     // Ensure user document exists
+  //     await setDoc(doc(db, "users", userId), {}, { merge: true });
+
+  //     const safeId = name.replace(/\s+/g, "-"); // Sanitize name for use as document ID
+  //     await setDoc(doc(db, "users", userId, "images", safeId), {
+  //       imageName: name,
+  //       imageData: preview,
+  //       imageSavedAt: new Date().toISOString(),
+  //     });
+
+  //     setSaved(true);
+  //   } catch (err) {
+  //     console.error("❌ Save error:", err);
+  //     alert("Failed to save image.");
+  //   }
+  // };
 
   // Start or stop video recording (commented out in UI)
   const toggleRecording = () => {
@@ -209,24 +222,23 @@ export default function Camera({ onClose, userId }: CameraProps) {
       <h1>Camera View</h1>
       {/* Toggle camera button */}
       <button onClick={toggleCamera}>
-        {/* later on, make it simpler to understand */}
         {cameraOn ? "📴 Turn Off" : "📷 Turn On"}
       </button>
 
       {/* Close camera screen */}
-      <button onClick={onClose}>🔙 Back</button>
+      <button onClick={onClose}>Return </button>
 
       <div className="camera-container">
-        {preview ? (
+        {preview ? ( // if preview is null or not showing, show camera instead
           <>
             {name && <h3>📷 {name}</h3>}
             <img
               src={preview}
               alt="Preview"
-              style={{ width: "100%", border: "20px solid black", borderRadius: "40px" }}
+              style={{ width: "50px", border: "5px solid black", borderRadius: "5px" }}
             />
             {/* Save image button only appears if not yet saved */}
-            {!saved && <button onClick={saveImage} style={{ marginTop: 10 }}>💾 Save</button>}
+            {!saved && <button onClick={saveImage} style={{ marginTop: 10 }}> Save Image</button>}
           </>
         ) : (
           <video ref={videoRef} autoPlay playsInline className="camera-feed" />

@@ -3,7 +3,7 @@ import { collection, getDocs, deleteDoc, doc, setDoc } from "firebase/firestore"
 import { db } from "./firebase";
 
 interface GalleryProps {
-  userId: string;                                     
+  userId: string;
   onClose(): void;                                    // callback to exit gallery
   setSelectedImageUrl: Dispatch<SetStateAction<string | null>>;   // update parent’s profile URL
   setSelectedImageName: Dispatch<SetStateAction<string | null>>;  // update parent’s profile name
@@ -14,22 +14,23 @@ interface ImageData { id: string; imageName: string; imageData: string; }
 export default function Gallery({
   userId, onClose, setSelectedImageUrl, setSelectedImageName,
 }: GalleryProps) {
-  const [images, setImages]     = useState<ImageData[]>([]);    // gallery images
-  const [loading, setLoading]   = useState(true);              // loading flag
+  const [images, setImages] = useState<ImageData[]>([]);    // gallery images
+  const [loading, setLoading] = useState(true);              // loading flag
   const [enlarged, setEnlarged] = useState<ImageData | null>(null); // for fullscreen view
 
   // ─── Fetch all images whenever userId changes ─────────────────────────
   useEffect(() => {
     (async () => {
-      if (!userId) return setLoading(false);  // no user → skip
+      if (!userId) {
+        return setLoading(false);
+      }
       try {
-        const snap = await getDocs(collection(db, "users", userId, "images"));
-        // transform each Firestore doc into ImageData
+        const imageSnap = await getDocs(collection(db, "users", userId, "images"));
         setImages(
-          snap.docs.map(d => ({
-            id: d.id,
-            imageName: d.data().imageName || "Unnamed",
-            imageData: d.data().imageData || "",
+          imageSnap.docs.map(document => ({
+            id: document.id,
+            imageName: document.data().imageName || "Not Named",
+            imageData: document.data().imageData || "",
           }))
         );
       } catch (e) {
@@ -38,8 +39,29 @@ export default function Gallery({
       } finally {
         setLoading(false);
       }
-    })();
+    })
   }, [userId]);
+  // useEffect(() => {
+  //   (async () => {
+  //     if (!userId) return setLoading(false);  // no user → skip
+  //     try {
+  //       const snap = await getDocs(collection(db, "users", userId, "images"));
+  //       // transform each Firestore doc into ImageData
+  //       setImages(
+  //         snap.docs.map(d => ({
+  //           id: d.id,
+  //           imageName: d.data().imageName || "Unnamed",
+  //           imageData: d.data().imageData || "",
+  //         }))
+  //       );
+  //     } catch (e) {
+  //       console.error("❌ Failed to load gallery images:", e);
+  //       setImages([]);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   })();
+  // }, [userId]);
 
   // ─── Styles extracted to constants to keep JSX clean ────────────────
   const gridStyle = {
@@ -108,7 +130,7 @@ export default function Gallery({
                   {/* action buttons */}
                   <div style={btnGroupStyle}>
                     {/* enlarge to fullscreen */}
-                    <button onClick={() => setEnlarged(img)}>🔍 Enlarge</button>
+                    <button onClick={() => setEnlarged(img)}> Enlarge</button>
 
                     {/* delete from Firestore & state */}
                     <button onClick={async () => {
@@ -116,7 +138,7 @@ export default function Gallery({
                       await deleteDoc(doc(db, "users", userId, "images", img.id));
                       setImages(prev => prev.filter(i => i.id !== img.id));
                     }}>
-                      🗑️ Delete
+                      Delete Image
                     </button>
 
                     {/* set as profile picture in Firestore & parent */}
@@ -146,7 +168,7 @@ export default function Gallery({
       {/* fullscreen modal */}
       {enlarged && (
         <div className="modal-overlay" style={modalOverlay} onClick={() => setEnlarged(null)}>
-          <div style={modalContent} onClick={e => e.stopPropagation()}>
+          <div style={modalContent} onClick={click_event => click_event.stopPropagation()}>
             <img
               src={enlarged.imageData}
               alt={enlarged.imageName}

@@ -23,11 +23,13 @@ export default function PendingRequestsModal({
   useEffect(() => {
     const userdoc_ref = getDoc(doc(db, "users", currentUser))
     userdoc_ref.then(userdoc_snap => {
-      if (userdoc_snap.exists() === true) {
-        setRequests(userdoc_snap.data().requests || [])
-      } else {
+      if (!userdoc_snap.exists() ) {
         setRequests([]);
+        return;
       }
+      const userdoc_data = userdoc_snap.data();  // <-- TS now knows this is defined
+
+    setRequests(userdoc_data.requests || []);
     })
   }, [currentUser]) // whenuser changes
   // useEffect(() => {
