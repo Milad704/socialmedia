@@ -12,6 +12,7 @@ interface CameraProps {
 // Main Camera component
 export default function Camera({ onClose, userId }: CameraProps) {
   // Refs for accessing video and canvas elements
+
   // A ref to the <video> element in the DOM
   // .current will eventually point to the actual <video> so we can control it (like assigning srcObject)
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -77,7 +78,7 @@ export default function Camera({ onClose, userId }: CameraProps) {
   // Stop camera and clean up tracks
   const stopCamera = () => {
     streamRef.current?.getTracks().forEach(track => track.stop()); // Stop all media tracks: video track, and audio track
-    if (videoRef.current){
+    if (videoRef.current) {
       videoRef.current.srcObject = null; // stops video stream
       streamRef.current = null;
       setCameraOn(false);
@@ -91,28 +92,67 @@ export default function Camera({ onClose, userId }: CameraProps) {
   // };
 
   // Auto stop camera when component unmounts
-  useEffect(() => () => stopCamera(), []);
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, []) // [] means nothing, so use effect only run once, if we wanted to run it again, put confidition in []
+  // useEffect(() => {
+  //   return () => {
+  //     stopCamera();  // runs when the component unmounts
+  //   };
+  // }, []);
 
   // Toggle camera on/off
-  const toggleCamera = () => (cameraOn ? stopCamera() : startCamera());
+  const toggleCamera = () => {
+    if (cameraOn === true) {
+      stopCamera();
+    } else {
+      startCamera();
+    }
+  }
+  // const toggleCamera = () => (cameraOn ? stopCamera() : startCamera());
 
   // Capture image from video and show preview
   const takePicture = () => {
-    const video = videoRef.current, canvas = canvasRef.current;
+    const video = videoRef.current; // live camera feed
+    const canvas = canvasRef.current;
     if (!video || !canvas) return;
 
-    const ctx = canvas.getContext("2d");
+    const imageContext = canvas.getContext("2d");
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    ctx?.drawImage(video, 0, 0); // Draw current video frame onto canvas
 
-    const dataUrl = canvas.toDataURL("image/png"); // Convert to base64 PNG
-    setPreview(dataUrl);                           // Show preview
-    const userInput = prompt("Name your picture:"); // Ask for image name
-    if (!userInput) return alert("⚠️ No name entered.");
-    setName(userInput.trim());
+    imageContext?.drawImage(video, 0, 0); // draw a image based off current video frame
+
+    const imageUrl = canvas.toDataURL("image/png");
+    const imageName = prompt("Name your picture: ");
+
+    if (!imageName || imageName.length === 0) { // how to stop user from writting  nothing
+      return alert("No name entered");
+    }
+
+    setName(imageName.trim());
+    setPreview(imageUrl);
+
     setSaved(false);
-  };
+  }
+  // const takePicture = () => {
+  //   const video = videoRef.current, canvas = canvasRef.current;
+  //   if (!video || !canvas) return;
+
+  //   const ctx = canvas.getContext("2d");
+  //   canvas.width = video.videoWidth;
+  //   canvas.height = video.videoHeight;
+  //   ctx?.drawImage(video, 0, 0); // Draw current video frame onto canvas
+
+  //   const dataUrl = canvas.toDataURL("image/png"); // Convert to base64 PNG
+  //   setPreview(dataUrl);                           // Show preview
+  //   const userInput = prompt("Name your picture:"); // Ask for image name
+  //   if (!userInput) return alert("⚠️ No name entered.");
+  //   setName(userInput.trim());
+  //   setSaved(false);
+  // };
 
   // Save captured image to Firestore under /users/{userId}/images/{imageName}
   const saveImage = async () => {
@@ -169,6 +209,7 @@ export default function Camera({ onClose, userId }: CameraProps) {
       <h1>Camera View</h1>
       {/* Toggle camera button */}
       <button onClick={toggleCamera}>
+        {/* later on, make it simpler to understand */}
         {cameraOn ? "📴 Turn Off" : "📷 Turn On"}
       </button>
 
