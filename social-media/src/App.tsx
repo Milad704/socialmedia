@@ -29,7 +29,7 @@ import "./App.css"; // global styles
 // HELPER: add each user to the other's `friends` array
 const addFriendToUsers = async (currentUser: string, otheruser: string) => {
   try {
-    // update both user docs in parallel for efficiency
+    // update both user docs
     await Promise.all([
       updateDoc(doc(db, "users", currentUser), { friends: arrayUnion(otheruser) }),
       updateDoc(doc(db, "users", otheruser), { friends: arrayUnion(currentUser) }),
@@ -70,22 +70,34 @@ export default function App() {
   const [imgName, setImgName] = useState<string | null>(null); // image filename or label
 
   // --- LOGIN HANDLER ---
-  const handleLogin = (u: string) => {
-    setUsername(u); // store the username
+  const handleLogin = (username: string) => {
+    setUsername(username); // store the username
     setLoggedIn(true); // switch to main UI
   };
 
   // --- REAL-TIME PROFILE PIC LISTENER ---
   useEffect(() => {
+    if (!username){
+      return;
+    }
+    const imageref = doc(db, "users", username, "profile", "image") // profile image
+    return onSnapshot(imageref, (imagesnapshot) => {
+      const imagedata = imagesnapshot.data() || {};
+      setImgUrl(imagedata.imageData || null);
+      setImgName(imagedata.imgName || null);
+    },
+  (err) => console.error(err));
+    
+  }, [username]);
+  useEffect(() => { 
     if (!username) return; // skip until user logs in
-    const ref = doc(db, "users", username, "profile", "image");
-    // subscribe to changes in the 'profile/image' document
-    return onSnapshot(
-      ref,
-      (snap) => {
-        const data = snap.data() || {};
-        setImgUrl(data.imageData || null); // update image URL
-        setImgName(data.imageName || null); // update image label
+    const image_ref = doc(db, "users", username, "profile", "image"); // reference to image of user
+    return onSnapshot( // onshapshot means when it changes
+      image_ref,
+      (image_snap) => {
+        const image_data = image_snap.data() || {};
+        setImgUrl(image_data.imageData || null); // update image URL
+        setImgName(image_data.imageName || null); // update image label
       },
       (err) => console.error(err)
     );
