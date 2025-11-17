@@ -116,11 +116,11 @@ export default function Login({ onLogin }: LoginProps) {
     await updateDoc(userdoc_ref, { password: make_newpass?.trim() })
   };
 
-  // --- UI RENDER ---
+  
   return (
     <main className="login-screen">
       <h1>
-        Welcome to SnapClone 📸
+        Welcome to SnapClone 
         <br />
         <span style={{ fontSize: 14, color: "#888" }}>
         </span>
@@ -189,7 +189,6 @@ export default function Login({ onLogin }: LoginProps) {
         </button>
       )}
 
-      {/* Little note under form */}
       <p className="login-note">
         {isSignup
           ? "Already have an account? Click Log In above."

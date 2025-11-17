@@ -156,7 +156,7 @@ export default function Gallery({
                         alert("❌ Failed to set profile picture.");
                       }
                     }}>
-                      👤 Set as Profile
+                      Set as Profile Picture
                     </button>
                   </div>
                 </div>
