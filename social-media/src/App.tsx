@@ -77,7 +77,7 @@ export default function App() {
 
   // --- REAL-TIME PROFILE PIC LISTENER ---
   useEffect(() => {
-    if (!username){
+    if (!username) {
       return;
     }
     const imageref = doc(db, "users", username, "profile", "image") // profile image
@@ -86,56 +86,82 @@ export default function App() {
       setImgUrl(imagedata.imageData || null);
       setImgName(imagedata.imgName || null);
     },
-  (err) => console.error(err));
-    
-  }, [username]);
-  useEffect(() => { 
-    if (!username) return; // skip until user logs in
-    const image_ref = doc(db, "users", username, "profile", "image"); // reference to image of user
-    return onSnapshot( // onshapshot means when it changes
-      image_ref,
-      (image_snap) => {
-        const image_data = image_snap.data() || {};
-        setImgUrl(image_data.imageData || null); // update image URL
-        setImgName(image_data.imageName || null); // update image label
-      },
-      (err) => console.error(err)
-    );
-  }, [username]);
+      (err) => console.error(err));
 
-  // --- LOAD FRIENDS LIST ONCE ---
-  useEffect(() => {
-    if (!username) return;
-    getDoc(doc(db, "users", username))
-      .then((snap) => setFriends(snap.data()?.friends || [])) // default to [] if missing
-      .catch(() => setFriends([]));
   }, [username]);
+  // useEffect(() => { 
+  //   if (!username) return; // skip until user logs in
+  //   const image_ref = doc(db, "users", username, "profile", "image"); // reference to image of user
+  //   return onSnapshot( // onshapshot means when it changes
+  //     image_ref,
+  //     (image_snap) => {
+  //       const image_data = image_snap.data() || {};
+  //       setImgUrl(image_data.imageData || null); // update image URL
+  //       setImgName(image_data.imageName || null); // update image label
+  //     },
+  //     (err) => console.error(err)
+  //   );
+  // }, [username]);
+
+  // Friend list loading
+  useEffect(() => {
+    if (!username) {
+      return;
+    }
+    const ref = doc(db, "users", username);
+    const newfriendadd = onSnapshot(ref, (snapshot) => {
+      setFriends(snapshot.data()?.friends || [])
+    })
+  }, [username]);
+  // useEffect(() => {
+  //   if (!username) return;
+  //   getDoc(doc(db, "users", username))
+  //     .then((snap) => setFriends(snap.data()?.friends || [])) // default to [] if missing
+  //     .catch(() => setFriends([]));
+  // }, [username]);
 
   // --- LOAD GROUP CHATS WHEN VIEW GROUPS MODAL OPENS ---
   useEffect(() => {
-    if (!showViewGroups || !username) return;
-    const q = query(
-      collection(db, "groupChats"),
-      where("members", "array-contains", username) // only groups containing this user
-    );
-    getDocs(q)
-      .then((snap) =>
-        setGroupChatsList(
-          snap.docs.map((d) => ({ id: d.id, name: d.data().name }))
-        )
-      )
-      .catch(() => setGroupChatsList([]));
+    if (!showViewGroups || !username) {
+      return;
+    }
+    const groupwithuser = query(collection(db, "groupChats"), where("members", "array-contains", username));
+    getDocs(groupwithuser).then((snapshot) => setGroupChatsList(snapshot.docs.map((document) => ({ id: document.id, name: document.data().name }))));
   }, [showViewGroups, username]);
+  // useEffect(() => {
+  //   if (!showViewGroups || !username) return;
+  //   const q = query(
+  //     collection(db, "groupChats"),
+  //     where("members", "array-contains", username) // only groups containing this user
+  //   );
+  //   getDocs(q)
+  //     .then((snap) =>
+  //       setGroupChatsList(
+  //         snap.docs.map((d) => ({ id: d.id, name: d.data().name }))
+  //       )
+  //     )
+  //     .catch(() => setGroupChatsList([]));
+  // }, [showViewGroups, username]);
 
   // --- GROUP CREATION HELPERS ---
   // toggle friend selection in new-group form
-  const toggleGroupFriend = (id: string) =>
-    setGroupSelection(
-      (prev) =>
-        prev.includes(id)
-          ? prev.filter((x) => x !== id) // remove if already selected
-          : [...prev, id] // add if not
-    );
+  const toggleGroupFriend = (id: string) => { // id is friends id
+    setGroupSelection((prevfriend) => { // prev friend array that are clicked
+      const includedfriend = prevfriend.includes(id) // is friend included in friend array that got clicked
+      if (includedfriend){
+        return prevfriend.filter((friend_Id) => friend_Id !== id) // remove user from array
+      } else {
+        return [...prevfriend, id] // add user to the array
+      }
+    })
+  }
+  // const toggleGroupFriend = (id: string) =>
+  //   setGroupSelection(
+  //     (prev) =>
+  //       prev.includes(id)
+  //         ? prev.filter((x) => x !== id) // remove if already selected
+  //         : [...prev, id] // add if not
+  //   );
 
   // create and write a new group chat to Firestore
   const createGroupChat = async () => {
@@ -239,8 +265,8 @@ export default function App() {
         {/* Center section: camera/gallery triggers & profile preview */}
         <div className="center_white_strip">
           <div className="buttons">
-            <button onClick={() => setShowCamera(true)}>📸 Camera</button>
-            <button onClick={() => setShowGallery(true)}>🖼️ Gallery</button>
+            <button onClick={() => setShowCamera(true)}> Camera</button>
+            <button onClick={() => setShowGallery(true)}> Gallery</button>
           </div>
           <div style={{ marginTop: 30, textAlign: "center" }}>
             <h4>📷 {imgName || "No image selected."}</h4>
