@@ -31,8 +31,12 @@ const addFriendToUsers = async (currentUser: string, otheruser: string) => {
   try {
     // update both user docs
     await Promise.all([
-      updateDoc(doc(db, "users", currentUser), { friends: arrayUnion(otheruser) }),
-      updateDoc(doc(db, "users", otheruser), { friends: arrayUnion(currentUser) }),
+      updateDoc(doc(db, "users", currentUser), {
+        friends: arrayUnion(otheruser),
+      }),
+      updateDoc(doc(db, "users", otheruser), {
+        friends: arrayUnion(currentUser),
+      }),
     ]);
     console.log("✅ Friends added");
   } catch (err) {
@@ -44,7 +48,7 @@ export default function App() {
   // --- AUTH & NAVIGATION STATE ---
   const [loggedIn, setLoggedIn] = useState(false); // is user logged in?
   const [username, setUsername] = useState(""); // current user's ID (string)
-  const [selectedFriend, setSelectedFriend] = useState<string | null>(null); // active 1-on-1 or group chat ID
+  const [chatId, SetChatId] = useState<string | null>(null); // active 1-on-1 or group chat ID: id of chat
 
   // --- DATA LISTS FROM FIRESTORE ---
   const [friends, setFriends] = useState<string[]>([]); // array of friend usernames
@@ -80,16 +84,18 @@ export default function App() {
     if (!username) {
       return;
     }
-    const imageref = doc(db, "users", username, "profile", "image") // profile image
-    return onSnapshot(imageref, (imagesnapshot) => {
-      const imagedata = imagesnapshot.data() || {};
-      setImgUrl(imagedata.imageData || null);
-      setImgName(imagedata.imgName || null);
-    },
-      (err) => console.error(err));
-
+    const imageref = doc(db, "users", username, "profile", "image"); // profile image
+    return onSnapshot(
+      imageref,
+      (imagesnapshot) => {
+        const imagedata = imagesnapshot.data() || {};
+        setImgUrl(imagedata.imageData || null);
+        setImgName(imagedata.imgName || null);
+      },
+      (err) => console.error(err)
+    );
   }, [username]);
-  // useEffect(() => { 
+  // useEffect(() => {
   //   if (!username) return; // skip until user logs in
   //   const image_ref = doc(db, "users", username, "profile", "image"); // reference to image of user
   //   return onSnapshot( // onshapshot means when it changes
@@ -110,8 +116,8 @@ export default function App() {
     }
     const ref = doc(db, "users", username);
     const newfriendadd = onSnapshot(ref, (snapshot) => {
-      setFriends(snapshot.data()?.friends || [])
-    })
+      setFriends(snapshot.data()?.friends || []);
+    });
   }, [username]);
   // useEffect(() => {
   //   if (!username) return;
@@ -125,8 +131,18 @@ export default function App() {
     if (!showViewGroups || !username) {
       return;
     }
-    const groupwithuser = query(collection(db, "groupChats"), where("members", "array-contains", username));
-    getDocs(groupwithuser).then((snapshot) => setGroupChatsList(snapshot.docs.map((document) => ({ id: document.id, name: document.data().name }))));
+    const groupwithuser = query(
+      collection(db, "groupChats"),
+      where("members", "array-contains", username)
+    );
+    getDocs(groupwithuser).then((snapshot) =>
+      setGroupChatsList(
+        snapshot.docs.map((document) => ({
+          id: document.id,
+          name: document.data().name,
+        }))
+      )
+    );
   }, [showViewGroups, username]);
   // useEffect(() => {
   //   if (!showViewGroups || !username) return;
@@ -145,16 +161,18 @@ export default function App() {
 
   // --- GROUP CREATION HELPERS ---
   // toggle friend selection in new-group form
-  const toggleGroupFriend = (id: string) => { // id is friends id
-    setGroupSelection((prevfriend) => { // prev friend array that are clicked
-      const includedfriend = prevfriend.includes(id) // is friend included in friend array that got clicked
-      if (includedfriend){
-        return prevfriend.filter((friend_Id) => friend_Id !== id) // remove user from array
+  const toggleGroupFriend = (id: string) => {
+    // id is friends id
+    setGroupSelection((prevfriend) => {
+      // prev friend array that are clicked
+      const includedfriend = prevfriend.includes(id); // is friend included in friend array that got clicked
+      if (includedfriend) {
+        return prevfriend.filter((friend_Id) => friend_Id !== id); // remove user from array
       } else {
-        return [...prevfriend, id] // add user to the array
+        return [...prevfriend, id]; // add user to the array
       }
-    })
-  }
+    });
+  };
   // const toggleGroupFriend = (id: string) =>
   //   setGroupSelection(
   //     (prev) =>
@@ -165,62 +183,115 @@ export default function App() {
 
   // create and write a new group chat to Firestore
   const createGroupChat = async () => {
-    const name = newGroupName.trim();
-    if (!name) return alert("Enter a name.");
-    if (!groupSelection.length) return alert("Select friends.");
+    const name = newGroupName.trim(); // variable value that user inputs
+    if (!name) return alert("Enter a name");
+    if (!groupSelection.length) return alert("Select friends");
 
-    // sanitize group name into a document ID
     const id = name
       .toLowerCase()
-      .replace(/\s+/g, "_") // spaces → underscores
-      .replace(/[^a-z0-9_]/g, ""); // remove invalid chars
+      .replace(/\s+/g, "_")
+      .replace(/[^a-z0-9_]/g, "");
     const ref = doc(db, "groupChats", id);
 
     if ((await getDoc(ref)).exists()) {
-      return alert("Name taken.");
+      return alert("Name taken");
     }
-
     try {
       await setDoc(ref, {
         name,
         members: [username, ...groupSelection],
         createdAt: new Date(),
       });
-      setSelectedFriend(id); // immediately open new group chat
+      SetChatId(id);
     } catch {
       alert("Failed to create.");
     }
-
-    // reset and close modal
     setNewGroupName("");
     setGroupSelection([]);
     setShowMakeGroup(false);
   };
 
+  // const createGroupChat = async () => {
+  //   const name = newGroupName.trim();
+  //   if (!name) return alert("Enter a name.");
+  //   if (!groupSelection.length) return alert("Select friends.");
+
+  //   // sanitize group name into a document ID
+  //   const id = name
+  //     .toLowerCase()
+  //     .replace(/\s+/g, "_") // spaces → underscores
+  //     .replace(/[^a-z0-9_]/g, ""); // remove invalid chars
+  //   const ref = doc(db, "groupChats", id);
+
+  //   if ((await getDoc(ref)).exists()) {
+  //     return alert("Name taken.");
+  //   }
+
+  //   try {
+  //     await setDoc(ref, {
+  //       name,
+  //       members: [username, ...groupSelection],
+  //       createdAt: new Date(),
+  //     });
+  //     SetChatId(id); // immediately open new group chat
+  //   } catch {
+  //     alert("Failed to create.");
+  //   }
+
+  //   // reset and close modal
+  //   setNewGroupName("");
+  //   setGroupSelection([]);
+  //   setShowMakeGroup(false);
+  // };
+
   // --- CONDITIONAL RENDERING FOR NAVIGATION ---
-  if (!loggedIn) return <Login onLogin={handleLogin} />; // login screen first
-  if (selectedFriend)
-    // open ChatRoom for 1-on-1 or group chat
+
+  if (!loggedIn) return <Login onLogin={handleLogin} />;
+
+  if (chatId)
+    //checks that if null, it stays main screen, if true(their is a chat with id) goes to ChatRoom
     return (
       <ChatRoom
         currentUser={username}
-        chatId={selectedFriend} // refers to either groupchat name or name of other user in 1 on 1 chat. 
-        onBack={() => setSelectedFriend(null)} // go back to main UI
+        chatId={chatId}
+        onBack={() => SetChatId(null)} // if back button is clicked, goes back to main screen
       />
     );
   if (showCamera)
-    return <Camera userId={username} onClose={() => setShowCamera(false)} />; // camera screen
+    return <Camera userId={username} onClose={() => setShowCamera(false)} />;
   if (showGallery)
     return (
       <Gallery
         userId={username}
         onClose={() => setShowGallery(false)}
-        setSelectedImageUrl={setImgUrl} // update state when an image is chosen
+        setSelectedImageUrl={setImgUrl}
         setSelectedImageName={setImgName}
       />
     );
+  // if (!loggedIn) return <Login onLogin={handleLogin} />; // login screen first
+  // if (chatId)
+  //   // open ChatRoom for 1-on-1 or group chat
+  //   return (
+  //     <ChatRoom
+  //       currentUser={username}
+  //       chatId={chatId} // refers to either groupchat name or name of other user in 1 on 1 chat.
+  //       onBack={() => SetChatId(null)} // go back to main UI
+  //     />
+  //   );
+  // if (showCamera)
+  //   return <Camera userId={username} onClose={() => setShowCamera(false)} />; // camera screen
+  // if (showGallery)
+  //   return (
+  //     <Gallery
+  //       userId={username}
+  //       onClose={() => setShowGallery(false)}
+  //       setSelectedImageUrl={setImgUrl} // update state when an image is chosen
+  //       setSelectedImageName={setImgName}
+  //     />
+  //   );
 
   // --- MAIN UI LAYOUT ---
+
   return (
     <main className="main-screen">
       <h1>Your username is {username}</h1>
@@ -229,13 +300,13 @@ export default function App() {
         <div className="white_strip">
           <div className="sidebar-button-grid">
             <button onClick={() => setShowAddFriend(true)}>
-              ➕ Add friends
+             Add friends
             </button>
-            <button onClick={() => setShowPending(true)}>📩 Pending</button>
-            <button onClick={() => setShowNewChat(true)}>💬 Chats</button>
-            <button onClick={() => setShowMakeGroup(true)}>👥 New Group</button>
+            <button onClick={() => setShowPending(true)}> Pending</button>
+            <button onClick={() => setShowNewChat(true)}> Chats</button>
+            <button onClick={() => setShowMakeGroup(true)}> New Group</button>
             <button onClick={() => setShowViewGroups(true)}>
-              👀 View Groups
+              View Groups
             </button>
           </div>
           {/* List of friends; click to open a chat */}
@@ -243,20 +314,20 @@ export default function App() {
             <h4>Your Friends</h4>
             {friends.length ? (
               <ul className="friend-list">
-                {friends.map((f) => (
+                {friends.map((friend) => (
                   <li
-                    key={f}
+                    key={friend}
                     className="friend-item"
-                    onClick={() => setSelectedFriend(f)}
+                    onClick={() => SetChatId(friend)}
                   >
                     <div className="friend-avatar">
-                      {f.slice(0, 2).toUpperCase()}
+                      {friend.slice(0, 2).toUpperCase()} 
                     </div>
-                    <div className="friend-name">{f}</div>
+                    <div className="friend-name">{friend}</div>
                   </li>
                 ))}
               </ul>
-            ) : (
+            ) : ( //if length is 0
               <p>No friends yet.</p>
             )}
           </div>
@@ -270,7 +341,7 @@ export default function App() {
           </div>
           <div style={{ marginTop: 30, textAlign: "center" }}>
             <h4>📷 {imgName || "No image selected."}</h4>
-            {imgUrl && (
+            {imgUrl && (   
               <>
                 {" "}
                 {/* preview and removal of existing profile pic */}
@@ -282,8 +353,8 @@ export default function App() {
                       await deleteDoc(
                         doc(db, "users", username, "profile", "image")
                       );
-                    } catch (e) {
-                      console.error(e);
+                    } catch (error) {
+                      console.error(error);
                     }
                   }}
                 >
@@ -319,12 +390,12 @@ export default function App() {
             <h3>Your Friends</h3>
             {friends.length ? (
               <ul className="new-chat-list">
-                {friends.map((f) => (
-                  <li key={f}>
-                    <span>{f}</span>
+                {friends.map((friend) => (
+                  <li key={friend}>
+                    <span>{friend}</span>
                     <button
                       onClick={() => {
-                        setSelectedFriend(f);
+                        SetChatId(friend);
                         setShowNewChat(false);
                       }}
                     >
@@ -350,19 +421,19 @@ export default function App() {
               className="group-name-input"
               placeholder="Group name…"
               value={newGroupName}
-              onChange={(e) => setNewGroupName(e.target.value)}
+              onChange={(error) => setNewGroupName(error.target.value)}
             />
             {friends.length ? (
               <ul className="group-friend-list">
-                {friends.map((f) => (
-                  <li key={f}>
+                {friends.map((friend) => (
+                  <li key={friend}>
                     <label>
                       <input
                         type="checkbox"
-                        checked={groupSelection.includes(f)}
-                        onChange={() => toggleGroupFriend(f)}
+                        checked={groupSelection.includes(friend)}
+                        onChange={() => toggleGroupFriend(friend)}
                       />
-                      {f}
+                      {friend}
                     </label>
                   </li>
                 ))}
@@ -396,7 +467,7 @@ export default function App() {
                     <span>{c.name}</span>
                     <button
                       onClick={() => {
-                        setSelectedFriend(c.id);
+                        SetChatId(c.id);
                         setShowViewGroups(false);
                       }}
                     >
