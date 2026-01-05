@@ -66,6 +66,7 @@ export default function App() {
   const [showNewChat, setShowNewChat] = useState(false); // new chat modal
   const [showMakeGroup, setShowMakeGroup] = useState(false); // create group modal
   const [showViewGroups, setShowViewGroups] = useState(false); // view groups modal
+  const [Showprofile, setShowprofile] = useState(false);
 
   // --- FORM STATE FOR GROUP CREATION ---
   const [newGroupName, setNewGroupName] = useState(""); // group name input
@@ -146,20 +147,6 @@ export default function App() {
       )
     );
   }, [showViewGroups, username]);
-  // useEffect(() => {
-  //   if (!showViewGroups || !username) return;
-  //   const q = query(
-  //     collection(db, "groupChats"),
-  //     where("members", "array-contains", username) // only groups containing this user
-  //   );
-  //   getDocs(q)
-  //     .then((snap) =>
-  //       setGroupChatsList(
-  //         snap.docs.map((d) => ({ id: d.id, name: d.data().name }))
-  //       )
-  //     )
-  //     .catch(() => setGroupChatsList([]));
-  // }, [showViewGroups, username]);
 
   // --- GROUP CREATION HELPERS ---
   // toggle friend selection in new-group form
@@ -175,13 +162,6 @@ export default function App() {
       }
     });
   };
-  // const toggleGroupFriend = (id: string) =>
-  //   setGroupSelection(
-  //     (prev) =>
-  //       prev.includes(id)
-  //         ? prev.filter((x) => x !== id) // remove if already selected
-  //         : [...prev, id] // add if not
-  //   );
 
   // create and write a new group chat to Firestore
   const createGroupChat = async () => {
@@ -211,49 +191,15 @@ export default function App() {
     setGroupSelection([]);
     setShowMakeGroup(false);
   };
-
-  // const createGroupChat = async () => {
-  //   const name = newGroupName.trim();
-  //   if (!name) return alert("Enter a name.");
-  //   if (!groupSelection.length) return alert("Select friends.");
-
-  //   // sanitize group name into a document ID
-  //   const id = name
-  //     .toLowerCase()
-  //     .replace(/\s+/g, "_") // spaces → underscores
-  //     .replace(/[^a-z0-9_]/g, ""); // remove invalid chars
-  //   const ref = doc(db, "groupChats", id);
-
-  //   if ((await getDoc(ref)).exists()) {
-  //     return alert("Name taken.");
-  //   }
-
-  //   try {
-  //     await setDoc(ref, {
-  //       name,
-  //       members: [username, ...groupSelection],
-  //       createdAt: new Date(),
-  //     });
-  //     SetChatId(id); // immediately open new group chat
-  //   } catch {
-  //     alert("Failed to create.");
-  //   }
-
-  //   // reset and close modal
-  //   setNewGroupName("");
-  //   setGroupSelection([]);
-  //   setShowMakeGroup(false);
-  // };
-
   // --- CONDITIONAL RENDERING FOR NAVIGATION ---
 
   if (!loggedIn) return <Login onLogin={handleLogin} />;
-  if (loggedIn) 
-    return (
-      <Profile
-      currentUser={username}
-      />
-    );
+  // if (loggedIn) 
+  //   return (
+  //     <Profile
+  //     currentUser={username}
+  //     />
+  //   );
 
   if (chatId)
     //checks that if null, it stays main screen, if true(their is a chat with id) goes to ChatRoom
@@ -275,27 +221,6 @@ export default function App() {
         setSelectedImageName={setImgName}
       />
     );
-  // if (!loggedIn) return <Login onLogin={handleLogin} />; // login screen first
-  // if (chatId)
-  //   // open ChatRoom for 1-on-1 or group chat
-  //   return (
-  //     <ChatRoom
-  //       currentUser={username}
-  //       chatId={chatId} // refers to either groupchat name or name of other user in 1 on 1 chat.
-  //       onBack={() => SetChatId(null)} // go back to main UI
-  //     />
-  //   );
-  // if (showCamera)
-  //   return <Camera userId={username} onClose={() => setShowCamera(false)} />; // camera screen
-  // if (showGallery)
-  //   return (
-  //     <Gallery
-  //       userId={username}
-  //       onClose={() => setShowGallery(false)}
-  //       setSelectedImageUrl={setImgUrl} // update state when an image is chosen
-  //       setSelectedImageName={setImgName}
-  //     />
-  //   );
 
   // --- MAIN UI LAYOUT ---
 
@@ -312,9 +237,8 @@ export default function App() {
             <button onClick={() => setShowPending(true)}> Pending</button>
             <button onClick={() => setShowNewChat(true)}> Chats</button>
             <button onClick={() => setShowMakeGroup(true)}> New Group</button>
-            <button onClick={() => setShowViewGroups(true)}>
-              View Groups
-            </button>
+            <button onClick={() => setShowViewGroups(true)}>View Groups</button>
+            <button onClick={() => setShowprofile(true)}>View your profile</button>
           </div>
           {/* List of friends; click to open a chat */}
           <div className="friend-list-container">
@@ -389,7 +313,11 @@ export default function App() {
           setFriends={setFriends}
         />
       )}
-
+      {Showprofile &&(
+        <Profile
+        currentUser={username}
+       />
+      )}
       {/* New Chat: list friends with Chat buttons */}
       {showNewChat && (
         <div className="modal-overlay new-chat-modal">
