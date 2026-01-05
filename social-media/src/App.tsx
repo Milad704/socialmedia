@@ -21,10 +21,12 @@ type Props = { onLogin: (u: string) => void };
 import Login from "./Login"; // login screen
 import Camera from "./Camera"; // camera capture screen
 import Gallery from "./Gallery"; // gallery browser screen
+import Profile from "./profile";
 import ChatRoom from "./ChatRoom"; // chat interface screen
 import AddFriendModal from "./AddFriendModal"; // modal to send friend requests
 import PendingRequestsModal from "./PendingRequestsModal"; // modal to accept/decline
 import "./App.css"; // global styles
+
 
 // HELPER: add each user to the other's `friends` array
 const addFriendToUsers = async (currentUser: string, otheruser: string) => {
@@ -246,6 +248,12 @@ export default function App() {
   // --- CONDITIONAL RENDERING FOR NAVIGATION ---
 
   if (!loggedIn) return <Login onLogin={handleLogin} />;
+  if (loggedIn) 
+    return (
+      <Profile
+      currentUser={username}
+      />
+    );
 
   if (chatId)
     //checks that if null, it stays main screen, if true(their is a chat with id) goes to ChatRoom
