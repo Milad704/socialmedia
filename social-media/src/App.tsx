@@ -21,7 +21,7 @@ type Props = { onLogin: (u: string) => void };
 import Login from "./Login"; // login screen
 import Camera from "./Camera"; // camera capture screen
 import Gallery from "./Gallery"; // gallery browser screen
-import Profile from "./profile";
+import Profile from "./Profile";
 import ChatRoom from "./ChatRoom"; // chat interface screen
 import AddFriendModal from "./AddFriendModal"; // modal to send friend requests
 import PendingRequestsModal from "./PendingRequestsModal"; // modal to accept/decline
@@ -161,8 +161,8 @@ export default function App() {
         return [...prevfriend, id]; // add user to the array
       }
     });
-  };
-
+  }; 
+  const default_image =  "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_640.png"
   // create and write a new group chat to Firestore
   const createGroupChat = async () => {
     const name = newGroupName.trim(); // variable value that user inputs
@@ -194,12 +194,6 @@ export default function App() {
   // --- CONDITIONAL RENDERING FOR NAVIGATION ---
 
   if (!loggedIn) return <Login onLogin={handleLogin} />;
-  // if (loggedIn) 
-  //   return (
-  //     <Profile
-  //     currentUser={username}
-  //     />
-  //   );
 
   if (chatId)
     //checks that if null, it stays main screen, if true(their is a chat with id) goes to ChatRoom
@@ -210,6 +204,14 @@ export default function App() {
         onBack={() => SetChatId(null)} // if back button is clicked, goes back to main screen
       />
     );
+          
+    if(Showprofile)
+    return(
+    <Profile
+      currentUser={username}
+      currentImg ={imgUrl ?? default_image}
+     />
+    )
   if (showCamera)
     return <Camera userId={username} onClose={() => setShowCamera(false)} />;
   if (showGallery)
@@ -293,6 +295,7 @@ export default function App() {
                 </button>
               </>
             )}
+            
           </div>
         </div>
       </div>
@@ -313,11 +316,13 @@ export default function App() {
           setFriends={setFriends}
         />
       )}
-      {Showprofile &&(
+      
+      {/* {Showprofile &&(
         <Profile
         currentUser={username}
+        currentImg ={imgUrl ?? default_image}
        />
-      )}
+      )} */}
       {/* New Chat: list friends with Chat buttons */}
       {showNewChat && (
         <div className="modal-overlay new-chat-modal">
