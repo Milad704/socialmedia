@@ -598,3 +598,12 @@ button:hover {
   margin-top: 10px;
   object-fit: cover;
 }
+
+.bio_input textarea {
+  width: 200px;
+  height: 100px
+}
+/* .bio_button {
+  width: 50px;
+  height: 50px;
+} */
