@@ -17,6 +17,7 @@ export default function Gallery({
   const [images, setImages] = useState<ImageData[]>([]);    // gallery images
   const [loading, setLoading] = useState(true);              // loading flag
   const [enlarged, setEnlarged] = useState<ImageData | null>(null); // for fullscreen view
+  const [post, setPost] = useState<ImageData | null>(null);
 
   // ─── Fetch all images whenever userId changes ─────────────────────────
   useEffect(() => {
@@ -39,29 +40,19 @@ export default function Gallery({
       } finally {
         setLoading(false);
       }
-    })
+    }) ()
   }, [userId]);
-  // useEffect(() => {
-  //   (async () => {
-  //     if (!userId) return setLoading(false);  // no user → skip
-  //     try {
-  //       const snap = await getDocs(collection(db, "users", userId, "images"));
-  //       // transform each Firestore doc into ImageData
-  //       setImages(
-  //         snap.docs.map(d => ({
-  //           id: d.id,
-  //           imageName: d.data().imageName || "Unnamed",
-  //           imageData: d.data().imageData || "",
-  //         }))
-  //       );
-  //     } catch (e) {
-  //       console.error("❌ Failed to load gallery images:", e);
-  //       setImages([]);
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   })();
-  // }, [userId]);
+
+  const postImage = async (img: ImageData) => {
+    await setDoc(
+      doc(db, "users", userId, "posted", img.id),
+      {
+        imageName: img.imageName,
+        imageData: img.imageData,
+        postedAt: new Date().toISOString(),
+      }
+    );
+  };
 
   // ─── Styles extracted to constants to keep JSX clean ────────────────
   const gridStyle = {
@@ -129,6 +120,7 @@ export default function Gallery({
 
                   {/* action buttons */}
                   <div style={btnGroupStyle}>
+                    <button onClick={() => postImage(img)}>Post</button>
                     {/* enlarge to fullscreen */}
                     <button onClick={() => setEnlarged(img)}> Enlarge</button>
 

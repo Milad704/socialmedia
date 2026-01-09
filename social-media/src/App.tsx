@@ -205,13 +205,16 @@ export default function App() {
       />
     );
           
-    if(Showprofile)
-    return(
-    <Profile
-      currentUser={username}
-      currentImg ={imgUrl ?? default_image}
-     />
-    )
+    // if(Showprofile)
+    // return(
+    // <Profile
+    //   currentUser={username}
+    //   currentImg ={imgUrl ?? default_image}
+    //   id: string;
+    //   imageName: string;
+    //   imageData: string;
+    //  />
+    // )
   if (showCamera)
     return <Camera userId={username} onClose={() => setShowCamera(false)} />;
   if (showGallery)
