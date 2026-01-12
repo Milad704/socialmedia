@@ -75,6 +75,13 @@ export default function App() {
   // --- PROFILE PICTURE STATE ---
   const [imgUrl, setImgUrl] = useState<string | null>(null); // image data URL
   const [imgName, setImgName] = useState<string | null>(null); // image filename or label
+  const [postedImages, setPostedImages] = useState<PostedImage[]>([]);
+
+  interface PostedImage {
+    id: string;
+    imageName: string;
+    imageData: string;
+  }
 
   // --- LOGIN HANDLER ---
   const handleLogin = (username: string) => {
@@ -98,19 +105,7 @@ export default function App() {
       (err) => console.error(err)
     );
   }, [username]);
-  // useEffect(() => {
-  //   if (!username) return; // skip until user logs in
-  //   const image_ref = doc(db, "users", username, "profile", "image"); // reference to image of user
-  //   return onSnapshot( // onshapshot means when it changes
-  //     image_ref,
-  //     (image_snap) => {
-  //       const image_data = image_snap.data() || {};
-  //       setImgUrl(image_data.imageData || null); // update image URL
-  //       setImgName(image_data.imageName || null); // update image label
-  //     },
-  //     (err) => console.error(err)
-  //   );
-  // }, [username]);
+
 
   // Friend list loading
   useEffect(() => {
@@ -205,16 +200,14 @@ export default function App() {
       />
     );
           
-    // if(Showprofile)
-    // return(
-    // <Profile
-    //   currentUser={username}
-    //   currentImg ={imgUrl ?? default_image}
-    //   id: string;
-    //   imageName: string;
-    //   imageData: string;
-    //  />
-    // )
+    if (Showprofile)
+    return (
+      <Profile
+        currentUser={username}
+        currentImg={imgUrl ?? default_image}
+        image={postedImages}
+      />
+    );
   if (showCamera)
     return <Camera userId={username} onClose={() => setShowCamera(false)} />;
   if (showGallery)
