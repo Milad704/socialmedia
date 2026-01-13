@@ -1,5 +1,5 @@
 import React, { useEffect, useState, Dispatch, SetStateAction } from "react";
-import { collection, getDocs, deleteDoc, doc, setDoc } from "firebase/firestore";
+import { collection, getDocs, deleteDoc, doc, setDoc, getDoc } from "firebase/firestore";
 import { db } from "./firebase";
 
 interface GalleryProps {
@@ -17,7 +17,7 @@ export default function Gallery({
   const [images, setImages] = useState<ImageData[]>([]);    // gallery images
   const [loading, setLoading] = useState(true);              // loading flag
   const [enlarged, setEnlarged] = useState<ImageData | null>(null); // for fullscreen view
-  const [post, setPost] = useState<ImageData | null>(null);
+  const [isPosted, setisPosted] = useState<{ [imageId: string]: boolean }>({});
 
   // ─── Fetch all images whenever userId changes ─────────────────────────
   useEffect(() => {
@@ -35,14 +35,27 @@ export default function Gallery({
           }))
         );
       } catch (e) {
-        console.error("❌ Failed to load gallery images:", e);
+        console.error(" Failed to load gallery images:", e);
         setImages([]);
       } finally {
         setLoading(false);
       }
+    //   try {
+    //     const image_snap = await getDocs(collection(db,"users", userId, "posted",))
+    // if (!image_snap){
+    //    setisPosted(false)
+    // } else {
+    //   setisPosted(true)
+    // }
+    //   } catch(e){
+    //     console.error("Failed to check if image is posted")
+    //   }
+
     }) ()
   }, [userId]);
-
+  const unpostImage = async (img: ImageData) => {
+    await deleteDoc(doc(db,"users", userId, "posted", img.id))
+  }
   const postImage = async (img: ImageData) => {
     await setDoc(
       doc(db, "users", userId, "posted", img.id),
@@ -53,6 +66,15 @@ export default function Gallery({
       }
     );
   };
+  
+  // const is_posted = async (boolean:true) => {
+  //   const image_snap = await getDoc(doc(db,"users", userId, "posted",))
+  //   if (!image_snap){
+  //      setisPosted(false)
+  //   } else {
+  //     setisPosted(true)
+  //   }
+  // }
 
   // ─── Styles extracted to constants to keep JSX clean ────────────────
   const gridStyle = {
@@ -96,7 +118,6 @@ export default function Gallery({
     <main className="main-screen">
       <h2>Gallery</h2>
       <button onClick={onClose}>Back</button>
-
       {/* loading / empty / grid states */}
       {loading
         ? <p>Loading images...</p>
@@ -120,7 +141,11 @@ export default function Gallery({
 
                   {/* action buttons */}
                   <div style={btnGroupStyle}>
-                    <button onClick={() => postImage(img)}>Post</button>
+                    {isPosted ? (
+                      <button onClick={() => unpostImage(img)}>UnPost</button>
+                    ): <button onClick={() => postImage(img)}>Post</button>}
+                    {/* <button onClick={() => postImage(img)}>Post</button> */}
+                    {/* <button onClick={() => unpostImage(img)}>UnPost</button> */}
                     {/* enlarge to fullscreen */}
                     <button onClick={() => setEnlarged(img)}> Enlarge</button>
 

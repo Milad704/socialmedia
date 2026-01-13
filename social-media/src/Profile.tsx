@@ -12,7 +12,7 @@ import { db } from "./firebase";
 interface Props {
   currentUser: string;
   currentImg: string;
-  image?: PostedImage[];
+  image: PostedImage[];
 }
 interface PostedImage {
   id: string;

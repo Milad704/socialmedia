@@ -117,12 +117,6 @@ export default function App() {
       setFriends(snapshot.data()?.friends || []);
     });
   }, [username]);
-  // useEffect(() => {
-  //   if (!username) return;
-  //   getDoc(doc(db, "users", username))
-  //     .then((snap) => setFriends(snap.data()?.friends || [])) // default to [] if missing
-  //     .catch(() => setFriends([]));
-  // }, [username]);
 
   // --- LOAD GROUP CHATS WHEN VIEW GROUPS MODAL OPENS ---
   useEffect(() => {
@@ -208,8 +202,10 @@ export default function App() {
         image={postedImages}
       />
     );
+
   if (showCamera)
     return <Camera userId={username} onClose={() => setShowCamera(false)} />;
+    
   if (showGallery)
     return (
       <Gallery
