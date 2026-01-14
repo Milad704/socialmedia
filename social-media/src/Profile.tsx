@@ -10,6 +10,7 @@ import {
 import { db } from "./firebase";
 
 interface Props {
+  onClose(): void;
   currentUser: string;
   currentImg: string;
   image: PostedImage[];
@@ -20,7 +21,7 @@ interface PostedImage {
   imageData: string;
 }
 
-export default function Profile({ currentUser, currentImg }: Props) {
+export default function Profile({ onClose, currentUser, currentImg }: Props) {
   const [text, Settext] = useState("");
   const [addBio, SetaddBio] = useState(false);
   const [bio, setBio] = useState<string | null>(null);
@@ -45,16 +46,23 @@ export default function Profile({ currentUser, currentImg }: Props) {
     const biotext = biotext_data?.text;
     setBio(biotext);
   };
-  const showPosted = async () => {
-    const snap = await getDocs(collection(db, "users", currentUser, "posted"));
-    setPostedImages(
-      snap.docs.map((doc) => ({
-        id: doc.id,
-        imageName: doc.data().imageName,
-        imageData: doc.data().imageData,
-      }))
-    );
-  };
+  useEffect(() => {
+    const loadPostedImages = async () => {
+      const snap = await getDocs(
+        collection(db, "users", currentUser, "posted")
+      );
+
+      setPostedImages(
+        snap.docs.map((doc) => ({
+          id: doc.id,
+          imageName: doc.data().imageName,
+          imageData: doc.data().imageData,
+        }))
+      );
+    };
+
+    loadPostedImages();
+  }, [currentUser]);
 
   return (
     <>
@@ -64,9 +72,10 @@ export default function Profile({ currentUser, currentImg }: Props) {
         alt="Profile"
         style={{ width: "120px", height: "120px" }}
       />
-      <button onClick={() => ShowBio()}>show Bio</button>
+      <button onClick={onClose}>Back</button>
+      <div className="bio_show"> <button onClick={() => ShowBio()}>show Bio</button></div>
       <button onClick={() => SetaddBio(true)}>Add/Change bio</button>
-      <button onClick={() => showPosted()}>Your posted images:</button>
+
 
       <div className="posted-images">
         {postedImages.map((img) => (
@@ -92,8 +101,9 @@ export default function Profile({ currentUser, currentImg }: Props) {
         </div>
       )}
       {bio && (
-        <div>
-          {bio} <button onClick={() => setBio(null)}>Hide</button>
+        <div className="bio_show">
+          {bio}
+          <button onClick={() => setBio(null)}>Hide</button>
         </div>
       )}
     </>

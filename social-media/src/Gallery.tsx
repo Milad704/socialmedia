@@ -40,21 +40,17 @@ export default function Gallery({
       } finally {
         setLoading(false);
       }
-    //   try {
-    //     const image_snap = await getDocs(collection(db,"users", userId, "posted",))
-    // if (!image_snap){
-    //    setisPosted(false)
-    // } else {
-    //   setisPosted(true)
-    // }
-    //   } catch(e){
-    //     console.error("Failed to check if image is posted")
-    //   }
+      const postedSnap = await getDocs(collection(db, "users", userId, "posted"))
+
+      const postedMap: { [imageId: string]: boolean } = {};
+      postedSnap.forEach(doc => { postedMap[doc.id] = true})
+
 
     }) ()
   }, [userId]);
   const unpostImage = async (img: ImageData) => {
     await deleteDoc(doc(db,"users", userId, "posted", img.id))
+     setisPosted(prev => ({ ...prev, [img.id]: false })); // image id doesnt exist, so its false(will show post)
   }
   const postImage = async (img: ImageData) => {
     await setDoc(
@@ -65,17 +61,9 @@ export default function Gallery({
         postedAt: new Date().toISOString(),
       }
     );
+    setisPosted(prev => ({ ...prev, [img.id]: true })); // image id does exist, so its true(will show unpost)
   };
   
-  // const is_posted = async (boolean:true) => {
-  //   const image_snap = await getDoc(doc(db,"users", userId, "posted",))
-  //   if (!image_snap){
-  //      setisPosted(false)
-  //   } else {
-  //     setisPosted(true)
-  //   }
-  // }
-
   // ─── Styles extracted to constants to keep JSX clean ────────────────
   const gridStyle = {
     display: "grid",
@@ -141,11 +129,9 @@ export default function Gallery({
 
                   {/* action buttons */}
                   <div style={btnGroupStyle}>
-                    {isPosted ? (
+                    {isPosted[img.id] ? (
                       <button onClick={() => unpostImage(img)}>UnPost</button>
                     ): <button onClick={() => postImage(img)}>Post</button>}
-                    {/* <button onClick={() => postImage(img)}>Post</button> */}
-                    {/* <button onClick={() => unpostImage(img)}>UnPost</button> */}
                     {/* enlarge to fullscreen */}
                     <button onClick={() => setEnlarged(img)}> Enlarge</button>
 

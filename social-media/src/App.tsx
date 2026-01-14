@@ -197,6 +197,7 @@ export default function App() {
     if (Showprofile)
     return (
       <Profile
+        onClose={() => setShowprofile(false)}
         currentUser={username}
         currentImg={imgUrl ?? default_image}
         image={postedImages}
