@@ -1,12 +1,5 @@
-import react, { useState, useEffect } from "react";
-import {
-  doc,
-  getDocs,
-  getDoc,
-  collection,
-  setDoc,
-  onSnapshot,
-} from "firebase/firestore";
+import React, { useState, useEffect } from "react";
+import { doc, getDocs, getDoc, collection, setDoc } from "firebase/firestore";
 import { db } from "./firebase";
 
 interface Props {
@@ -37,7 +30,7 @@ export default function Profile({ onClose, currentUser, currentImg }: Props) {
 
     SetaddBio(false);
   };
-  // if their is bio saved in db, set the text inside db into setBio state(showing it)
+
   const ShowBio = async () => {
     const biotext_snap = await getDoc(
       doc(db, "users", currentUser, "bio", "info")
@@ -46,6 +39,7 @@ export default function Profile({ onClose, currentUser, currentImg }: Props) {
     const biotext = biotext_data?.text;
     setBio(biotext);
   };
+
   useEffect(() => {
     const loadPostedImages = async () => {
       const snap = await getDocs(
@@ -66,28 +60,23 @@ export default function Profile({ onClose, currentUser, currentImg }: Props) {
 
   return (
     <>
-      <h4>your username is {currentUser}</h4>
-      <img
-        src={currentImg}
-        alt="Profile"
-        style={{ width: "120px", height: "120px" }}
-      />
       <button onClick={onClose}>Back</button>
-      <div className="bio_show"> <button onClick={() => ShowBio()}>show Bio</button></div>
       <button onClick={() => SetaddBio(true)}>Add/Change bio</button>
+      <div className="profile_top">
+        <img
+          src={currentImg}
+          alt="Profile"
+          style={{ width: "120px", height: "120px" }}
+        />
 
+        <button onClick={ShowBio}>show Bio</button>
 
-      <div className="posted-images">
-        {postedImages.map((img) => (
-          <div key={img.id} style={{ margin: "10px" }}>
-            <h5>{img.imageName}</h5>
-            <img
-              src={img.imageData}
-              alt={img.imageName}
-              style={{ width: "120px", height: "120px", objectFit: "cover" }}
-            />
+        {bio && (
+          <div className="bio_show">
+            {bio}
+            <button onClick={() => setBio(null)}>Hide</button>
           </div>
-        ))}
+        )}
       </div>
 
       {addBio && (
@@ -100,12 +89,19 @@ export default function Profile({ onClose, currentUser, currentImg }: Props) {
           <button onClick={saveBio}>Done</button>
         </div>
       )}
-      {bio && (
-        <div className="bio_show">
-          {bio}
-          <button onClick={() => setBio(null)}>Hide</button>
-        </div>
-      )}
+
+      <div className="posted-images">
+        {postedImages.map((img) => (
+          <div key={img.id} style={{ margin: "10px" }}>
+            {/* <h5>{img.imageName}</h5> */}
+            <img
+              src={img.imageData}
+              alt={img.imageName}
+              style={{ width: "120px", height: "120px" }}
+            />
+          </div>
+        ))}
+      </div>
     </>
   );
 }

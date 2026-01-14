@@ -599,6 +599,12 @@ button:hover {
   object-fit: cover;
 }
 
+.profile_top {
+  display: flex;
+  position: static;
+  max-width: 50px;
+  max-height: 50px;
+}
 .bio_input textarea {
   width: 200px;
   height: 100px
@@ -606,9 +612,9 @@ button:hover {
 
 .bio_show {
   display: flex;
-  align-items: flex-start;  
-  justify-content: center;   
-  width: fit-content;
-  height: fit-content;
-  margin-left: 12px;      
+  position:relative;
+  margin-left: 50px;
+  width: 50px;      
+
 }
+
