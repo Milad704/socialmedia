@@ -73,7 +73,7 @@ export default function Profile({ onClose, currentUser, currentImg }: Props) {
 
         {bio && (
           <div className="bio_show">
-            {bio}
+           <p className="bio_text">{bio}</p> 
             <button onClick={() => setBio(null)}>Hide</button>
           </div>
         )}

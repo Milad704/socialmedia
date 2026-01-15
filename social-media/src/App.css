@@ -602,8 +602,8 @@ button:hover {
 .profile_top {
   display: flex;
   position: static;
-  max-width: 50px;
-  max-height: 50px;
+  max-width: 500px;
+  max-height: 200px;
 }
 .bio_input textarea {
   width: 200px;
@@ -612,9 +612,13 @@ button:hover {
 
 .bio_show {
   display: flex;
-  position:relative;
   margin-left: 50px;
-  width: 50px;      
+  max-width: 220px;
 
 }
+.bio_text {
+  margin-left: 50px;
+  max-width: 1000px;
+  height: 40px;
 
+}
