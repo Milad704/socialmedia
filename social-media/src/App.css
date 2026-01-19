@@ -602,7 +602,7 @@ button:hover {
 .profile_top {
   display: flex;
   position: static;
-  max-width: 500px;
+  max-width: 1000px;
   max-height: 200px;
 }
 .bio_input textarea {
@@ -613,12 +613,26 @@ button:hover {
 .bio_show {
   display: flex;
   margin-left: 50px;
-  max-width: 220px;
-
+  max-width: 520px;
+  border-width: 4px;
+  border-style: dashed;
+  border-color: rgb(255, 166, 0);
 }
-.bio_text {
+/* .bio_text {
   margin-left: 50px;
   max-width: 1000px;
   height: 40px;
+} */
+.bio_button{
+max-width: 100px;
+max-height: 40px;
+margin-left: 10px;
+}
 
+.posted-images {
+  margin-top: 10px;
+  margin-left: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 120px);
+  gap: 120px;
 }

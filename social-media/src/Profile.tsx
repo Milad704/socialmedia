@@ -69,12 +69,12 @@ export default function Profile({ onClose, currentUser, currentImg }: Props) {
           style={{ width: "120px", height: "120px" }}
         />
 
-        <button onClick={ShowBio}>show Bio</button>
+        <button className="bio_button" onClick={ShowBio}>show Bio</button>
 
         {bio && (
           <div className="bio_show">
            <p className="bio_text">{bio}</p> 
-            <button onClick={() => setBio(null)}>Hide</button>
+            <button className="bio_button" onClick={() => setBio(null)}>Hide</button>
           </div>
         )}
       </div>
@@ -89,15 +89,16 @@ export default function Profile({ onClose, currentUser, currentImg }: Props) {
           <button onClick={saveBio}>Done</button>
         </div>
       )}
-
+      <h1>Your Images</h1>
       <div className="posted-images">
         {postedImages.map((img) => (
-          <div key={img.id} style={{ margin: "10px" }}>
-            {/* <h5>{img.imageName}</h5> */}
+          
+          <div key={img.id}>
+            <h5>{img.imageName}</h5>
             <img
               src={img.imageData}
               alt={img.imageName}
-              style={{ width: "120px", height: "120px" }}
+              style={{ width: "200px", height: "200px" }}
             />
           </div>
         ))}
