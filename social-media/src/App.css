@@ -598,7 +598,11 @@ button:hover {
   margin-top: 10px;
   object-fit: cover;
 }
-
+.profile_pic {
+  max-width: 250px;
+  max-height: 250px;
+  border-radius: 50%;
+}
 .profile_top {
   display: flex;
   position: static;
@@ -613,10 +617,14 @@ button:hover {
 .bio_show {
   display: flex;
   margin-left: 50px;
-  max-width: 520px;
+  padding-right: 10px;
+  max-width: 400px;
+  max-height: 200px ;
   border-width: 4px;
-  border-style: dashed;
+  border-style: solid;
   border-color: rgb(255, 166, 0);
+  overflow-y: auto;
+  word-break: break-word;
 }
 /* .bio_text {
   margin-left: 50px;

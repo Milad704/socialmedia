@@ -61,6 +61,7 @@ export default function Gallery({
         postedAt: new Date().toISOString(),
       }
     );
+    console.log(img.id)
     setisPosted(prev => ({ ...prev, [img.id]: true })); // image id does exist, so its true(will show unpost)
   };
   

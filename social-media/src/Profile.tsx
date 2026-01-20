@@ -66,7 +66,7 @@ export default function Profile({ onClose, currentUser, currentImg }: Props) {
         <img
           src={currentImg}
           alt="Profile"
-          style={{ width: "120px", height: "120px" }}
+          className="profile_pic"
         />
 
         <button className="bio_button" onClick={ShowBio}>show Bio</button>
@@ -74,8 +74,10 @@ export default function Profile({ onClose, currentUser, currentImg }: Props) {
         {bio && (
           <div className="bio_show">
            <p className="bio_text">{bio}</p> 
-            <button className="bio_button" onClick={() => setBio(null)}>Hide</button>
           </div>
+        )}
+        {bio && (
+          <button className="bio_button" onClick={() => setBio(null)}>Hide</button>
         )}
       </div>
 
@@ -98,7 +100,7 @@ export default function Profile({ onClose, currentUser, currentImg }: Props) {
             <img
               src={img.imageData}
               alt={img.imageName}
-              style={{ width: "200px", height: "200px" }}
+              style={{ width: "200px", height: "150px" }}
             />
           </div>
         ))}

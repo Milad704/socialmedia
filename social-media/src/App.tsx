@@ -8,13 +8,15 @@ import {
   deleteDoc, // delete a document
   updateDoc, // update specific fields of a document
   arrayUnion, // helper to append items to array fields
-  collection, // reference a collection by path
+  collection, //  the collection by its path
   query, // build a query against a collection
   where, // filter criteria for queries
   getDocs, // read multiple documents once
   onSnapshot, // subscribe to real-time updates
 } from "firebase/firestore";
 import { db } from "./firebase"; // your initialized Firestore instance
+// import { onAuthStateChanged } from "firebase/auth";
+// import { auth } from "./firebase";
 
 // Child components for different app screens & modals
 type Props = { onLogin: (u: string) => void };
@@ -27,8 +29,7 @@ import AddFriendModal from "./AddFriendModal"; // modal to send friend requests
 import PendingRequestsModal from "./PendingRequestsModal"; // modal to accept/decline
 import "./App.css"; // global styles
 
-
-// HELPER: add each user to the other's `friends` array
+// add each user to the other's `friends` array
 const addFriendToUsers = async (currentUser: string, otheruser: string) => {
   try {
     // update both user docs
@@ -106,7 +107,6 @@ export default function App() {
     );
   }, [username]);
 
-
   // Friend list loading
   useEffect(() => {
     if (!username) {
@@ -118,6 +118,17 @@ export default function App() {
     });
   }, [username]);
 
+  // useEffect(() => {
+  //   const unsubscribe = onAuthStateChanged(auth, (user) => {
+  //     if (user) {
+  //       setUsername(user.uid); // or username
+  //     } else {
+  //       setUsername("");
+  //     }
+  //   });
+
+  //   return () => unsubscribe();
+  // }, []);
   // --- LOAD GROUP CHATS WHEN VIEW GROUPS MODAL OPENS ---
   useEffect(() => {
     if (!showViewGroups || !username) {
@@ -150,8 +161,9 @@ export default function App() {
         return [...prevfriend, id]; // add user to the array
       }
     });
-  }; 
-  const default_image =  "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_640.png"
+  };
+  const default_image =
+    "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_640.png";
   // create and write a new group chat to Firestore
   const createGroupChat = async () => {
     const name = newGroupName.trim(); // variable value that user inputs
@@ -193,8 +205,8 @@ export default function App() {
         onBack={() => SetChatId(null)} // if back button is clicked, goes back to main screen
       />
     );
-          
-    if (Showprofile)
+
+  if (Showprofile)
     return (
       <Profile
         onClose={() => setShowprofile(false)}
@@ -206,7 +218,7 @@ export default function App() {
 
   if (showCamera)
     return <Camera userId={username} onClose={() => setShowCamera(false)} />;
-    
+
   if (showGallery)
     return (
       <Gallery
@@ -226,14 +238,14 @@ export default function App() {
         {/* Sidebar with buttons to open various modals */}
         <div className="white_strip">
           <div className="sidebar-button-grid">
-            <button onClick={() => setShowAddFriend(true)}>
-             Add friends
-            </button>
+            <button onClick={() => setShowAddFriend(true)}>Add friends</button>
             <button onClick={() => setShowPending(true)}> Pending</button>
             <button onClick={() => setShowNewChat(true)}> Chats</button>
             <button onClick={() => setShowMakeGroup(true)}> New Group</button>
             <button onClick={() => setShowViewGroups(true)}>View Groups</button>
-            <button onClick={() => setShowprofile(true)}>View your profile</button>
+            <button onClick={() => setShowprofile(true)}>
+              View your profile
+            </button>
           </div>
           {/* List of friends; click to open a chat */}
           <div className="friend-list-container">
@@ -247,13 +259,14 @@ export default function App() {
                     onClick={() => SetChatId(friend)}
                   >
                     <div className="friend-avatar">
-                      {friend.slice(0, 2).toUpperCase()} 
+                      {friend.slice(0, 2).toUpperCase()}
                     </div>
                     <div className="friend-name">{friend}</div>
                   </li>
                 ))}
               </ul>
-            ) : ( //if length is 0
+            ) : (
+              //if length is 0
               <p>No friends yet.</p>
             )}
           </div>
@@ -267,7 +280,7 @@ export default function App() {
           </div>
           <div style={{ marginTop: 30, textAlign: "center" }}>
             <h4>📷 {imgName || "No image selected."}</h4>
-            {imgUrl && (   
+            {imgUrl && (
               <>
                 {" "}
                 {/* preview and removal of existing profile pic */}
@@ -288,7 +301,6 @@ export default function App() {
                 </button>
               </>
             )}
-            
           </div>
         </div>
       </div>
@@ -309,7 +321,7 @@ export default function App() {
           setFriends={setFriends}
         />
       )}
-      
+
       {/* {Showprofile &&(
         <Profile
         currentUser={username}
