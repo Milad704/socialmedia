@@ -44,13 +44,14 @@ export default function Gallery({
 
       const postedMap: { [imageId: string]: boolean } = {};
       postedSnap.forEach(doc => { postedMap[doc.id] = true})
-
+      console.log(postedSnap)
 
     }) ()
   }, [userId]);
   const unpostImage = async (img: ImageData) => {
     await deleteDoc(doc(db,"users", userId, "posted", img.id))
      setisPosted(prev => ({ ...prev, [img.id]: false })); // image id doesnt exist, so its false(will show post)
+     console.log(isPosted)
   }
   const postImage = async (img: ImageData) => {
     await setDoc(
@@ -61,8 +62,9 @@ export default function Gallery({
         postedAt: new Date().toISOString(),
       }
     );
-    console.log(img.id)
+    
     setisPosted(prev => ({ ...prev, [img.id]: true })); // image id does exist, so its true(will show unpost)
+    console.log(isPosted)
   };
   
   // ─── Styles extracted to constants to keep JSX clean ────────────────
