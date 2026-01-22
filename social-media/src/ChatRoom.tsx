@@ -7,22 +7,22 @@ import {
 import { db } from "./firebase";
 
 interface Props {
-  currentUser: string;    // logged-in user
-  chatId: string;         // other user or groupChat ID
-  onBack(): void;         // navigate back
+  currentUser: string;    
+  chatId: string;         // other user(if 1 on 1) or groupChat ID
+  onBack(): void;       
 }
 
 export default function ChatRoom({ currentUser, chatId, onBack }: Props) {
 
-  const [Messages, setMessages] = useState<any[]>([]);      // list of messages
+  const [Messages, setMessages] = useState<any[]>([]);      
   const [newMsg, setNewMsg] = useState("");         // input text
-  const [isGroup, setIsGroup] = useState(false);    // chat type flag
+  const [isGroup, setIsGroup] = useState(false);    
   const [groupInfo, setGroupInfo] = useState<{ name: string; members: string[] }>({
     name: "",
     members: [],
   });
 
-  // detect group vs 1:1 and load participants 
+  // detect if group or 1:1 and load participants 
   useEffect(() => {
     (async () => {
       const chatdoc = await getDoc(doc(db, "groupChats", chatId));
@@ -40,21 +40,6 @@ export default function ChatRoom({ currentUser, chatId, onBack }: Props) {
     })();
   }, [currentUser, chatId]);
 
-  // useEffect(() => {
-  //   (async () => {
-  //     const gDoc = await getDoc(doc(db, "groupChats", chatId));
-  //     if (gDoc.exists()) {
-  //       const { name, members } = gDoc.data();
-
-  //       setIsGroup(true);
-  //       setGroupInfo({ name, members });
-  //     } else {
-  //       setIsGroup(false);
-  //       // setGroupInfo({ name: "", members: [currentUser, chatId] });
-  //     }
-  //   })();
-  // }, [currentUser, chatId]);
-
   // see collection if its groupchat or not, and returns messages of that collections along the way
   const collectionFor = (user: string) => {
     if (isGroup === true) {
@@ -64,15 +49,6 @@ export default function ChatRoom({ currentUser, chatId, onBack }: Props) {
     }
   }
 
-  // const collectionFor = (user: string) =>
-  //   collection(
-  //     db,
-  //     "users",
-  //     user,
-  //     isGroup ? "groupChats" : "chats",
-  //     isGroup ? chatId : [currentUser, chatId].sort().join("_"),
-  //     "messages"
-  //   );
 
   // ─── load & subscribe to messages ──────────────────
   useEffect(() => {
@@ -82,15 +58,6 @@ export default function ChatRoom({ currentUser, chatId, onBack }: Props) {
     const realtimeListen = onSnapshot(querysearch, snapshot => setMessages(snapshot.docs.map(document => ({ id: document.id, ...document.data() }))))
     return () => realtimeListen();
   }, [currentUser, chatId, isGroup]);
-  // useEffect(() => {
-  //   const col = collectionFor(currentUser);
-  //   const q = query(col, orderBy("createdAt"));
-  //   // initial fetch
-  //   getDocs(q).then(s => setMessages(s.docs.map(d => ({ id: d.id, ...d.data() }))));
-  //   // realtime updates
-  //   const unsub = onSnapshot(q, s => setMessages(s.docs.map(d => ({ id: d.id, ...d.data() }))));
-  //   return () => unsub();
-  // }, [currentUser, chatId, isGroup]);
 
   // ─── send message to all participants ─────────────
   const sendMessage = async () => {
@@ -105,28 +72,9 @@ export default function ChatRoom({ currentUser, chatId, onBack }: Props) {
       await addDoc(collectionFor(currentUser), chatmessage);
       await addDoc(collectionFor(chatId), chatmessage);
     }
-    setNewMsg(""); // make variable holding text go back to beingempty after sending message
+    setNewMsg(""); // make variable holding text go back to being empty after sending message
   }
-  // const sendMessage = async () => {
-  //   const text = newMsg.trim();
-  //   if (!text) return;
-  //   const payload = { text, sender: currentUser, createdAt: new Date() };
-  //   try {
-  //     if (isGroup) {
-  //       // push to each member’s subcollection
-  //       await Promise.all(groupInfo.members.map(m => addDoc(collectionFor(m), payload))); //
-  //     } else {
-  //       // 1:1, write to both sides
-  //       await addDoc(collectionFor(currentUser), payload);
-  //       await addDoc(collectionFor(chatId), payload);
-  //     }
-  //     setNewMsg("");
-  //   } catch (err) {
-  //     console.error("❌ sendMessage error:", err);
-  //   }
-  // };
 
-  // ─── soft-delete for own messages ──────────────────
   const deleteMessage = async (id: string) => { // id is document id for a specific message
     if (isGroup) {
       //replaces message text, deleted becomes true
@@ -136,24 +84,7 @@ export default function ChatRoom({ currentUser, chatId, onBack }: Props) {
       await updateDoc(doc(db, "users", currentUser, "chats", [currentUser, chatId].sort().join("_"), "messages", id), { text: "This message was deleted for you.", deleted: true })
     }
   }
-  // const deleteMessage = async (id: string) => {
-  //   try {
-  //     await updateDoc(
-  //       doc(
-  //         db,
-  //         "users",
-  //         currentUser,
-  //         isGroup ? "groupChats" : "chats",
-  //         isGroup ? chatId : [currentUser, chatId].sort().join("_"),
-  //         "messages",
-  //         id
-  //       ),
-  //       { text: "This message was deleted.", deleted: true }
-  //     );
-  //   } catch (err) {
-  //     console.error("❌ deleteMessage error:", err);
-  //   }
-  // };
+
 
   // ─── remove self from groupChat → go back ─────────
   const leaveGroup = async () => {
@@ -162,16 +93,7 @@ export default function ChatRoom({ currentUser, chatId, onBack }: Props) {
     });
     onBack();
   }
-  // const leaveGroup = async () => {
-  //   try {
-  //     await updateDoc(doc(db, "groupChats", chatId), {
-  //       members: arrayRemove(currentUser),
-  //     });
-  //     onBack();
-  //   } catch (err) {
-  //     console.error("❌ leaveGroup error:", err);
-  //   }
-  // };
+
   let title;
   if (isGroup) {
     title = groupInfo.name
@@ -208,19 +130,6 @@ export default function ChatRoom({ currentUser, chatId, onBack }: Props) {
         ))}
 
       </section>
-      {/* <section className="messages">
-        {Messages.map(m => (
-          <div key={m.id} className={m.sender === currentUser ? "my-message" : "their-message"}>
-            <strong>{m.sender}</strong> {m.text}
-            {m.sender === currentUser && !m.deleted && (
-              <button onClick={() => deleteMessage(m.id)} style={{ fontSize: "0.6rem", marginLeft: "3px" }}>
-                delete
-              </button>
-            )}
-          </div>
-        ))}
-      </section> */}
-
       <div className="chat-input">
         <input
           value={newMsg}

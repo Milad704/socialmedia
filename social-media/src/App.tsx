@@ -1,6 +1,4 @@
-// Import React and hooks for state & side effects
 import React, { useState, useEffect } from "react";
-// Firestore functions for reading, writing, querying, and real-time updates
 import {
   doc, // reference a document by path
   getDoc, // read a single document once
@@ -20,14 +18,14 @@ import { db } from "./firebase"; // your initialized Firestore instance
 
 // Child components for different app screens & modals
 type Props = { onLogin: (u: string) => void };
-import Login from "./Login"; // login screen
-import Camera from "./Camera"; // camera capture screen
-import Gallery from "./Gallery"; // gallery browser screen
+import Login from "./Login";
+import Camera from "./Camera"; 
+import Gallery from "./Gallery"; 
 import Profile from "./Profile";
-import ChatRoom from "./ChatRoom"; // chat interface screen
-import AddFriendModal from "./AddFriendModal"; // modal to send friend requests
-import PendingRequestsModal from "./PendingRequestsModal"; // modal to accept/decline
-import "./App.css"; // global styles
+import ChatRoom from "./ChatRoom"; 
+import AddFriendModal from "./AddFriendModal"; 
+import PendingRequestsModal from "./PendingRequestsModal"; 
+import "./App.css"; 
 
 // add each user to the other's `friends` array
 const addFriendToUsers = async (currentUser: string, otheruser: string) => {
@@ -48,34 +46,31 @@ const addFriendToUsers = async (currentUser: string, otheruser: string) => {
 };
 
 export default function App() {
-  // --- AUTH & NAVIGATION STATE ---
-  const [loggedIn, setLoggedIn] = useState(false); // is user logged in?
-  const [username, setUsername] = useState(""); // current user's ID (string)
+  const [loggedIn, setLoggedIn] = useState(false); 
+  const [username, setUsername] = useState(""); 
   const [chatId, SetChatId] = useState<string | null>(null); // active 1-on-1 or group chat ID: id of chat
 
-  // --- DATA LISTS FROM FIRESTORE ---
-  const [friends, setFriends] = useState<string[]>([]); // array of friend usernames
+
+  const [friends, setFriends] = useState<string[]>([]);
   const [groupChatsList, setGroupChatsList] = useState<
     { id: string; name: string }[]
   >([]);
 
-  // --- UI TOGGLES FOR SCREENS & MODALS ---
-  const [showCamera, setShowCamera] = useState(false); // camera screen
-  const [showGallery, setShowGallery] = useState(false); // gallery screen
-  const [showAddFriend, setShowAddFriend] = useState(false); // add-friend modal
-  const [showPending, setShowPending] = useState(false); // pending requests modal
-  const [showNewChat, setShowNewChat] = useState(false); // new chat modal
-  const [showMakeGroup, setShowMakeGroup] = useState(false); // create group modal
-  const [showViewGroups, setShowViewGroups] = useState(false); // view groups modal
+
+  const [showCamera, setShowCamera] = useState(false); 
+  const [showGallery, setShowGallery] = useState(false); 
+  const [showAddFriend, setShowAddFriend] = useState(false);
+  const [showPending, setShowPending] = useState(false); 
+  const [showNewChat, setShowNewChat] = useState(false); 
+  const [showMakeGroup, setShowMakeGroup] = useState(false); 
+  const [showViewGroups, setShowViewGroups] = useState(false); 
   const [Showprofile, setShowprofile] = useState(false);
 
-  // --- FORM STATE FOR GROUP CREATION ---
-  const [newGroupName, setNewGroupName] = useState(""); // group name input
-  const [groupSelection, setGroupSelection] = useState<string[]>([]); // selected friend IDs
+  const [newGroupName, setNewGroupName] = useState(""); 
+  const [groupSelection, setGroupSelection] = useState<string[]>([]); 
 
-  // --- PROFILE PICTURE STATE ---
-  const [imgUrl, setImgUrl] = useState<string | null>(null); // image data URL
-  const [imgName, setImgName] = useState<string | null>(null); // image filename or label
+  const [imgUrl, setImgUrl] = useState<string | null>(null); 
+  const [imgName, setImgName] = useState<string | null>(null); 
   const [postedImages, setPostedImages] = useState<PostedImage[]>([]);
 
   interface PostedImage {
@@ -84,18 +79,18 @@ export default function App() {
     imageData: string;
   }
 
-  // --- LOGIN HANDLER ---
+
   const handleLogin = (username: string) => {
-    setUsername(username); // store the username
-    setLoggedIn(true); // switch to main UI
+    setUsername(username); 
+    setLoggedIn(true); 
   };
 
-  // --- REAL-TIME PROFILE PIC LISTENER ---
+
   useEffect(() => {
     if (!username) {
       return;
     }
-    const imageref = doc(db, "users", username, "profile", "image"); // profile image
+    const imageref = doc(db, "users", username, "profile", "image");
     return onSnapshot(
       imageref,
       (imagesnapshot) => {
@@ -118,18 +113,6 @@ export default function App() {
     });
   }, [username]);
 
-  // useEffect(() => {
-  //   const unsubscribe = onAuthStateChanged(auth, (user) => {
-  //     if (user) {
-  //       setUsername(user.uid); // or username
-  //     } else {
-  //       setUsername("");
-  //     }
-  //   });
-
-  //   return () => unsubscribe();
-  // }, []);
-  // --- LOAD GROUP CHATS WHEN VIEW GROUPS MODAL OPENS ---
   useEffect(() => {
     if (!showViewGroups || !username) {
       return;
@@ -148,7 +131,7 @@ export default function App() {
     );
   }, [showViewGroups, username]);
 
-  // --- GROUP CREATION HELPERS ---
+
   // toggle friend selection in new-group form
   const toggleGroupFriend = (id: string) => {
     // id is friends id
