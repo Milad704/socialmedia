@@ -216,7 +216,7 @@ export default function App() {
 
   return (
     <main className="main-screen">
-      <h1>Your username is {username}</h1>
+      <h1  style={{ textAlign: "center" }}>Welcome {username}, to SnapClone</h1>
       <div className="strip-container">
         {/* Sidebar with buttons to open various modals */}
         <div className="white_strip">
@@ -262,12 +262,12 @@ export default function App() {
             <button onClick={() => setShowGallery(true)}> Gallery</button>
           </div>
           <div style={{ marginTop: 30, textAlign: "center" }}>
-            <h4>📷 {imgName || "No image selected."}</h4>
+            <h4>{imgName || "No image selected."}</h4>
             {imgUrl && (
               <>
                 {" "}
                 {/* preview and removal of existing profile pic */}
-                <h4 style={{ marginTop: 20 }}>🖼️ Preview</h4>
+                <h4 style={{ marginTop: 20 }}> Preview</h4>
                 <img src={imgUrl} alt="Selected" className="profile-preview" />
                 <button
                   onClick={async () => {
