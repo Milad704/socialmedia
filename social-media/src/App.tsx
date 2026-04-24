@@ -231,7 +231,7 @@ export default function App() {
             </button>
           </div>
           {/* List of friends; click to open a chat */}
-          <div className="friend-list-container">
+          {/* <div className="friend-list-container">
             <h4>Your Friends</h4>
             {friends.length ? (
               <ul className="friend-list">
@@ -252,7 +252,7 @@ export default function App() {
               //if length is 0
               <p>No friends yet.</p>
             )}
-          </div>
+          </div> */}
         </div>
 
         {/* Center section: camera/gallery triggers & profile preview */}
