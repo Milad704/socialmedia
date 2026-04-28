@@ -48,7 +48,7 @@ const addFriendToUsers = async (currentUser: string, otheruser: string) => {
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(false); 
   const [username, setUsername] = useState(""); 
-  const [chatId, SetChatId] = useState<string | null>(null); // active 1-on-1 or group chat ID: id of chat
+  const [chatId, SetChatId] = useState<string | null>(null); // 
 
 
   const [friends, setFriends] = useState<string[]>([]);
@@ -304,13 +304,6 @@ export default function App() {
           setFriends={setFriends}
         />
       )}
-
-      {/* {Showprofile &&(
-        <Profile
-        currentUser={username}
-        currentImg ={imgUrl ?? default_image}
-       />
-      )} */}
       {/* New Chat: list friends with Chat buttons */}
       {showNewChat && (
         <div className="modal-overlay new-chat-modal">

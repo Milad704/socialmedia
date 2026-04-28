@@ -39,31 +39,7 @@ export default function AddFriendModal({ currentUser, onClose }: Props) {
       setUsers(other_users)
     })
   }, [currentUser]) // run this modal everytime currentuser changes, like when different person logs in
-  // useEffect(() => {
-  //   getDocs(collection(db, "users")).then(userdocs => {
-  //     const available_user: string[] = []; // Other users available to add
-  //     const friend_user: string[] = []; // Friend usernames of currentUser
-  //     const sent_user: string[] = []; // Usernames to whom currentUser has sent requests
-
-  //     userdocs.forEach(doc => {
-  //       const id = doc.id, data = doc.data() as any; // id refer document id, not the num
-
-  //       if (id === currentUser) {
-  //         // Extract current user's friends and sent requests
-  //         friend_user.push(...(data.friends || []));
-  //         sent_user.push(...(data.sentRequests || []));
-  //       } else {
-  //         // Add all other usernames to list
-  //         available_user.push(id);
-  //       }
-  //     });
-
-  //     // Save results to state
-  //     setUsers(available_user);
-  //     setFriends(friend_user);
-  //     setSent(sent_user);
-  //   });
-  // }, [currentUser]);
+  
 
   // Function to send a friend request
 
@@ -80,22 +56,7 @@ export default function AddFriendModal({ currentUser, onClose }: Props) {
 
     setSent(prev_array => [...prev_array, to_otheruser]); // takes current array of sent requests and adds another value.
   }
-  // const sendRequest = async (to: string) => {
-  //   if (sent.includes(to)) return; // Prevent sending again
 
-  //   // Add request to recipient's "requests" array
-  //   await updateDoc(doc(db, "users", to), {
-  //     requests: arrayUnion(currentUser),
-  //   });
-
-  //   // Add recipient to sender's "sentRequests" array
-  //   await updateDoc(doc(db, "users", currentUser), {
-  //     sentRequests: arrayUnion(to),
-  //   });
-
-  //   // Update local UI state
-  //   setSent(prev => [...prev, to]);
-  // };
 
   // Filter users by search query and exclude existing friends
   const filtered = users.filter(eachuser =>

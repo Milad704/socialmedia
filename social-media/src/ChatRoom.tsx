@@ -50,7 +50,7 @@ export default function ChatRoom({ currentUser, chatId, onBack }: Props) {
   }
 
 
-  // ─── load & subscribe to messages ──────────────────
+  //  load & subscribe to messages 
   useEffect(() => {
     const collection = collectionFor(currentUser);
     const querysearch = query(collection, orderBy("createdAt")); // query search to check all messages of collection, order it by whens its created at
@@ -59,7 +59,7 @@ export default function ChatRoom({ currentUser, chatId, onBack }: Props) {
     return () => realtimeListen();
   }, [currentUser, chatId, isGroup]);
 
-  // ─── send message to all participants ─────────────
+  // send message to all participants 
   const sendMessage = async () => {
     const text = newMsg.trim();
     if (!text) { // checks if text is empty
@@ -86,7 +86,7 @@ export default function ChatRoom({ currentUser, chatId, onBack }: Props) {
   }
 
 
-  // ─── remove self from groupChat → go back ─────────
+  //  remove self from groupChat. go back
   const leaveGroup = async () => {
     await updateDoc(doc(db, "groupChats", chatId), {
       members: arrayRemove(currentUser),
@@ -100,7 +100,7 @@ export default function ChatRoom({ currentUser, chatId, onBack }: Props) {
   } else {
     title = chatId
   }
-  // ─── UI rendering ───────────────────────────────────
+  // UI rendering 
   return (
     <main className="chat-room">
       <header>

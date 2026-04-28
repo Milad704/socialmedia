@@ -127,33 +127,7 @@ export default function Camera({ onClose, userId }: CameraProps) {
 
   }
 
-  // Start or stop video recording (commented out in UI)
-  // const toggleRecording = () => {
-  //   const video = videoRef.current;
-  //   if (!video || !video.srcObject) return;
 
-  //   if (!recording) {
-  //     const mediaRecorder = new MediaRecorder(video.srcObject as MediaStream);
-  //     mediaRecorderRef.current = mediaRecorder;
-  //     chunksRef.current = [];
-
-  //     // Save each recorded chunk
-  //     mediaRecorder.ondataavailable = e => e.data.size && chunksRef.current.push(e.data);
-
-  //     // When recording ends, show video link in console
-  //     mediaRecorder.onstop = () => {
-  //       const blob = new Blob(chunksRef.current, { type: "video/webm" });
-  //       console.log("🎥 Video URL:", URL.createObjectURL(blob));
-  //       alert("Recording complete! Check console.");
-  //     };
-
-  //     mediaRecorder.start();
-  //     setRecording(true);
-  //   } else {
-  //     mediaRecorderRef.current?.stop();
-  //     setRecording(false);
-  //   }
-  // };
 
   // UI Rendering
   return (
@@ -170,7 +144,7 @@ export default function Camera({ onClose, userId }: CameraProps) {
       <div className="camera-container">
         {preview ? ( // if preview is null or not showing, show camera instead
           <>
-            {name && <h3>📷 {name}</h3>}
+            {name && <h3> {name}</h3>}
             <img
               src={preview}
               alt="Preview"
@@ -185,7 +159,7 @@ export default function Camera({ onClose, userId }: CameraProps) {
         <canvas ref={canvasRef} style={{ display: "none" }} />
 
         <div className="controls">
-          <button onClick={takePicture}>📸 Take Picture</button>
+          <button onClick={takePicture}> Take Picture</button>
         </div>
       </div>
     </main>
