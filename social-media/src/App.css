@@ -84,15 +84,6 @@ button:hover {
   gap: 20px;
 }
 
-.right_strip {
-  flex: 1;
-  text-align: right;
-  padding-right: 2vw;
-  font-weight: bold;
-  font-size: 1.5rem;
-  color: #333;
-  user-select: none;
-}
 /* ------------------------- */
 /* Camera Styling            */
 /* ------------------------- */
@@ -363,7 +354,7 @@ button:hover {
   top: 0;
   left: 0;
   width: 100vw;
-  height: 100vh;
+  height: 200;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
@@ -606,4 +597,50 @@ button:hover {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   margin-top: 10px;
   object-fit: cover;
+}
+.profile_pic {
+  max-width: 250px;
+  max-height: 250px;
+  border-radius: 50%;
+}
+.profile_top {
+  display: flex;
+  position: static;
+  max-width: 1000px;
+  max-height: 200px;
+}
+.bio_input textarea {
+  width: 200px;
+  height: 100px
+}
+
+.bio_show {
+  display: flex;
+  margin-left: 50px;
+  padding-right: 10px;
+  max-width: 400px;
+  max-height: 200px ;
+  border-width: 4px;
+  border-style: solid;
+  border-color: rgb(255, 166, 0);
+  overflow-y: auto;
+  word-break: break-word;
+}
+/* .bio_text {
+  margin-left: 50px;
+  max-width: 1000px;
+  height: 40px;
+} */
+.bio_button{
+max-width: 100px;
+max-height: 40px;
+margin-left: 10px;
+}
+
+.posted-images {
+  margin-top: 10px;
+  margin-left: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 120px);
+  gap: 120px;
 }

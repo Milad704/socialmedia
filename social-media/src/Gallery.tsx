@@ -1,9 +1,9 @@
 import React, { useEffect, useState, Dispatch, SetStateAction } from "react";
-import { collection, getDocs, deleteDoc, doc, setDoc } from "firebase/firestore";
+import { collection, getDocs, deleteDoc, doc, setDoc, getDoc } from "firebase/firestore";
 import { db } from "./firebase";
 
 interface GalleryProps {
-  userId: string;                                     
+  userId: string;
   onClose(): void;                                    // callback to exit gallery
   setSelectedImageUrl: Dispatch<SetStateAction<string | null>>;   // update parent’s profile URL
   setSelectedImageName: Dispatch<SetStateAction<string | null>>;  // update parent’s profile name
@@ -14,33 +14,59 @@ interface ImageData { id: string; imageName: string; imageData: string; }
 export default function Gallery({
   userId, onClose, setSelectedImageUrl, setSelectedImageName,
 }: GalleryProps) {
-  const [images, setImages]     = useState<ImageData[]>([]);    // gallery images
-  const [loading, setLoading]   = useState(true);              // loading flag
+  const [images, setImages] = useState<ImageData[]>([]);    // gallery images
+  const [loading, setLoading] = useState(true);              // loading flag
   const [enlarged, setEnlarged] = useState<ImageData | null>(null); // for fullscreen view
+  const [isPosted, setisPosted] = useState<{ [imageId: string]: boolean }>({});
 
   // ─── Fetch all images whenever userId changes ─────────────────────────
   useEffect(() => {
     (async () => {
-      if (!userId) return setLoading(false);  // no user → skip
+      if (!userId) {
+        return setLoading(false);
+      }
       try {
-        const snap = await getDocs(collection(db, "users", userId, "images"));
-        // transform each Firestore doc into ImageData
+        const imageSnap = await getDocs(collection(db, "users", userId, "images"));
         setImages(
-          snap.docs.map(d => ({
-            id: d.id,
-            imageName: d.data().imageName || "Unnamed",
-            imageData: d.data().imageData || "",
+          imageSnap.docs.map(document => ({
+            id: document.id,
+            imageName: document.data().imageName || "Not Named",
+            imageData: document.data().imageData || "",
           }))
         );
       } catch (e) {
-        console.error("❌ Failed to load gallery images:", e);
+        console.error(" Failed to load gallery images:", e);
         setImages([]);
       } finally {
         setLoading(false);
       }
-    })();
-  }, [userId]);
+      const postedSnap = await getDocs(collection(db, "users", userId, "posted"))
 
+      const postedMap: { [imageId: string]: boolean } = {};
+      postedSnap.forEach(doc => { postedMap[doc.id] = true})
+      console.log(postedSnap)
+
+    }) ()
+  }, [userId]);
+  const unpostImage = async (img: ImageData) => {
+    await deleteDoc(doc(db,"users", userId, "posted", img.id))
+     setisPosted(prev => ({ ...prev, [img.id]: false })); // image id doesnt exist, so its false(will show post)
+     console.log(isPosted)
+  }
+  const postImage = async (img: ImageData) => {
+    await setDoc(
+      doc(db, "users", userId, "posted", img.id),
+      {
+        imageName: img.imageName,
+        imageData: img.imageData,
+        postedAt: new Date().toISOString(),
+      }
+    );
+    
+    setisPosted(prev => ({ ...prev, [img.id]: true })); // image id does exist, so its true(will show unpost)
+    console.log(isPosted)
+  };
+  
   // ─── Styles extracted to constants to keep JSX clean ────────────────
   const gridStyle = {
     display: "grid",
@@ -83,7 +109,6 @@ export default function Gallery({
     <main className="main-screen">
       <h2>Gallery</h2>
       <button onClick={onClose}>Back</button>
-
       {/* loading / empty / grid states */}
       {loading
         ? <p>Loading images...</p>
@@ -107,8 +132,11 @@ export default function Gallery({
 
                   {/* action buttons */}
                   <div style={btnGroupStyle}>
+                    {isPosted[img.id] ? (
+                      <button onClick={() => unpostImage(img)}>UnPost</button>
+                    ): <button onClick={() => postImage(img)}>Post</button>}
                     {/* enlarge to fullscreen */}
-                    <button onClick={() => setEnlarged(img)}>🔍 Enlarge</button>
+                    <button onClick={() => setEnlarged(img)}> Enlarge</button>
 
                     {/* delete from Firestore & state */}
                     <button onClick={async () => {
@@ -116,7 +144,7 @@ export default function Gallery({
                       await deleteDoc(doc(db, "users", userId, "images", img.id));
                       setImages(prev => prev.filter(i => i.id !== img.id));
                     }}>
-                      🗑️ Delete
+                      Delete Image
                     </button>
 
                     {/* set as profile picture in Firestore & parent */}
@@ -134,7 +162,7 @@ export default function Gallery({
                         alert("❌ Failed to set profile picture.");
                       }
                     }}>
-                      👤 Set as Profile
+                      Set as Profile Picture
                     </button>
                   </div>
                 </div>
@@ -146,7 +174,7 @@ export default function Gallery({
       {/* fullscreen modal */}
       {enlarged && (
         <div className="modal-overlay" style={modalOverlay} onClick={() => setEnlarged(null)}>
-          <div style={modalContent} onClick={e => e.stopPropagation()}>
+          <div style={modalContent} onClick={click_event => click_event.stopPropagation()}>
             <img
               src={enlarged.imageData}
               alt={enlarged.imageName}
