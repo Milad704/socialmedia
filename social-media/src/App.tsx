@@ -79,7 +79,7 @@ export default function App() {
     imageData: string;
   }
 
-
+  // login functio, recieves and gives to state to username
   const handleLogin = (username: string) => {
     setUsername(username); 
     setLoggedIn(true); 
@@ -175,8 +175,7 @@ export default function App() {
     setGroupSelection([]);
     setShowMakeGroup(false);
   };
-  // --- CONDITIONAL RENDERING FOR NAVIGATION ---
-
+  // when user first goes to site, 
   if (!loggedIn) return <Login onLogin={handleLogin} />;
 
   if (chatId)
